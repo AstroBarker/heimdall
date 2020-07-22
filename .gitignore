@@ -1,0 +1,14 @@
+__pycache__
+*.pyc
+.DS_Store
+scratch/
+.vscode/
+testing.py
+testing.ipynb
+*checkpoint.ipynb
+temp/
+*.o
+*.mod
+*.so
+wl-EOS-SFHo-25-50-100.h5
+fort.8
