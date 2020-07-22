@@ -285,7 +285,7 @@ function ComputeR( D::Float64, E::Float64, Ne::Float64,
 
     R::Array{Float64,2} = zeros(6,6)
 
-    dd::DataFrame = computeDerivatives_pressure( D, E, Ne, Gmdd11, Gmdd22, Gmdd33 );
+    dd::DataFrame = ComputeDerivatives_pressure( D, E, Ne, Gmdd11, Gmdd22, Gmdd33 );
 
     Vd1::Float64 = Gmdd11 * Vu1
     Vd2::Float64 = Gmdd22 * Vu2
