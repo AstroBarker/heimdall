@@ -99,13 +99,3 @@ function cell_average(df::DataFrame, nNodes::Int)
 
 
 end
-
-data = load_thornado_single("/Users/barker/ornl_ut/projects/dgHydro/data/grav_collapse/PreBounce_Files", "000164", run="GravitationalCollapse")
-
-data_avg = cell_average(data, 2)
-
-using Plots
-
-plot(data.x1, data.uCF_D, show=true)
-plot!(data_avg.x1, data_avg.uCF_D, show=true)
-savefig("testFig.pdf")

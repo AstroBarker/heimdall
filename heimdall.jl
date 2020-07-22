@@ -200,7 +200,7 @@ function Cs( D::Float64, P::Float64, dPdE::Float64,
     CsSq::Float64 = Tau^2 * ( P * dPdE - dPdTau ) + Y * dPdDe 
 end
 
-function Compute_R( D::Array{Float64, 1}, E::Array{Float64, 1}, Ne::Array{Float64, 1}, 
+function Compute_R1( D::Array{Float64, 1}, E::Array{Float64, 1}, Ne::Array{Float64, 1}, 
     Vu1::Array{Float64, 1}, Vu2::Array{Float64, 1}, Vu3::Array{Float64, 1}, 
     Y::Array{Float64,1}, Em::Array{Float64, 1}, Cs::Array{Float64,1},
     Gmdd11::Float64, Gmdd22::Float64, Gmdd33::Float64 )
@@ -265,7 +265,7 @@ function Compute_R( D::Array{Float64, 1}, E::Array{Float64, 1}, Ne::Array{Float6
 
 end
 
-function Compute_R( D::Float64, E::Float64, Ne::Float64, 
+function Compute_R1( D::Float64, E::Float64, Ne::Float64, 
     Vu1::Float64, Vu2::Float64, Vu3::Float64, 
     Y::Float64, Em::Float64, Cs::Float64,
     Gmdd11::Float64, Gmdd22::Float64, Gmdd33::Float64 )
@@ -323,4 +323,116 @@ function Compute_R( D::Float64, E::Float64, Ne::Float64,
         Vd3, H + Cs .* sqrt.( Gmdd11 ) .* Vu1, Y ]
 
     return R
+end
+
+function Compute_invR1( D::Float64, E::Float64, Ne::Float64, 
+    Vu1::Float64, Vu2::Float64, Vu3::Float64, 
+    Y::Float64, Em::Float64, Cs::Float64,
+    Gmdd11::Float64, Gmdd22::Float64, Gmdd33::Float64 )
+    """
+    Compute the inverse matrix of right eigenvectors 1 from Barker et al.
+
+    Note: we access derivatives as dd.dPdx[1] as they are returned as single element arrays.
+
+    Parameters:
+    -----------
+    D::Float64 - thornado density profile
+    E::Float64 - thornado conserved energy density profile
+    Ne::Float64 - thornado conserved electron fraction profile
+    Vu1::Float64 - Velocity profile
+    Vu2::Float64 - Velocity profile
+    Vu3::Float64 - Velocity profile
+    Y::Float64 - thornado electron fraction
+    Cs::Float64 - thornado sound speed
+    Em::Float64 - thornado speciic internal energy
+    Gmdd11::Float64 - Diagonal components of metric
+    Gmdd22::Float64 - Diagonal components of metric
+    Gmdd33::Float64 - Diagonal components of metric
+    """
+
+    invR::Array{Float64,2} = zeros(6,6)
+
+    dd::DataFrame = ComputeDerivatives_pressure( D, E, Ne, Gmdd11, Gmdd22, Gmdd33 );
+
+    Vd1::Float64 = Gmdd11 * Vu1
+    Vd2::Float64 = Gmdd22 * Vu2
+    Vd3::Float64 = Gmdd33 * Vu3
+
+    Tau::Float64 = 1.0 ./ D
+
+    Phi_u1::Float64 = dd.dPdE[1] .* Tau .* Vu1
+    Phi_u2::Float64 = dd.dPdE[1] .* Tau .* Vu2
+    Phi_u3::Float64 = dd.dPdE[1] .* Tau .* Vu3
+
+    Phi_d1::Float64 = dd.dPdE[1] .* Tau .* Vd1
+    Phi_d2::Float64 = dd.dPdE[1] .* Tau .* Vd2
+    Phi_d3::Float64 = dd.dPdE[1] .* Tau .* Vd3
+
+    Vsq::Float64 = Vu1 * Vd1 + Vu2 * Vd2 + Vu3 * Vd3
+
+    Delta::Float64 = Vu1 * Vd1 - Vu2 * Vd2 - Vu3 * Vd3
+    B::Float64 = 0.5 .* ( Delta + 2.0 .* Em + 
+        (2.0 .* dd.dPdTau[1] * Tau) ./ dd.dPdE[1])
+    X::Float64 = (dd.dPdE[1] .* ( Delta + 2.0 * Em) + 2.0 * dd.dPdTau[1] .* Tau )
+
+    K::Float64 = ( ( - ( Y ./ Tau ) .* dd.dPdDe[1] + dd.dPdE[1] .* ( 
+          0.5 * Vsq + Em ) + dd.dPdTau[1] .* Tau ) ./ ( dd.dPdE[1] ) )
+    H::Float64 = ( Cs.^2 ./ ( dd.dPdE[1] .* Tau ) ) + K
+    Alpha::Float64 = 2.0 * Y .* dd.dPdDe[1] - X .* Tau
+    W = Tau .* ( dd.dPdE[1] .* ( Vsq - 2.0 * Em )
+               - 2.0 .* dd.dPdTau[1] .* Tau )
+    invCsSq = 1.0 ./ ( Cs.^2 )
+
+    # TODO: Replace H with Tau(E+P)
+    # TODO: Try analytic sound speed?
+
+    invR[:,1] = invCsSq .*
+        [ + 0.25 * (W + 2.0 * Cs .* sqrt.( Gmdd11 ) .* Vu1), 
+          - 0.5 * Vd2 .* W,
+          + (2.0 * Cs.^2 * X + Alpha .* W ./ Tau)./(2.0 .* X),
+          - (Y) .* dd.dPdDe[1] .* W / (X .* Tau),
+          - 0.5 * Vd3 .* W,
+          + 0.25 * (W - 2.0 * Cs .* sqrt.( Gmdd11 ) .* Vu1) ]
+
+    invR[:,2] = invCsSq .*
+        [ - 0.5 .* ( ( Cs ./ sqrt.( Gmdd11 ) ) + Phi_u1 ),
+          + Phi_u1 .* Vd2,
+          - Phi_u1 .* Alpha ./ (X .* Tau),
+          + 2.0 * Y .* dd.dPdDe[1] .* Phi_u1 ./ (X .* Tau),
+          + Phi_u1 .* Vd3,
+          + 0.5 .* ( ( Cs ./ sqrt.( Gmdd11 ) ) - Phi_u1 ) ]
+
+    invR[:,3] = invCsSq .* 
+        [ - 0.5 * Phi_u2,
+          + Cs.^2 + Phi_u2 .* Vd2,
+          - Phi_u2 .* Alpha ./ (X .* Tau),
+          + 2.0 .* Y .* dd.dPdDe[1] .* Phi_u2 ./ (X .* Tau),
+          + Phi_u2 .* Vd3,
+          - 0.5 * Phi_u2 ]
+
+    invR[:,4] = invCsSq .*
+        [ - 0.5 * Phi_u3,
+          + Phi_u3 .* Vd2,
+          - Phi_u3 .* Alpha ./ (X .* Tau),
+          + 2.0 .* Y .* dd.dPdDe[1] .* Phi_u3 ./ (X .* Tau),
+          + Cs.^2 + Phi_u3 .* Vd3,
+          - 0.5 * Phi_u3 ]
+
+    invR[:,5] = invCsSq .*
+        [ + 0.5 * dd.dPdE[1] .* Tau,
+          - Phi_d2,
+          + dd.dPdE[1] .* Alpha  ./ X,
+          - ((2.0 * Y .* dd.dPdDe[1] .* dd.dPdE[1]) ./ X),
+          - Phi_d3,
+          + 0.5 * dd.dPdE[1] .* Tau ]
+
+    invR[:,6] = invCsSq .*
+        [ + 0.5 * dd.dPdDe[1],
+          - Vd2 .* dd.dPdDe[1],
+          + (dd.dPdDe[1] .* (-2.0 * Cs.^2 + Alpha)) ./ (Tau .* X),
+          + 2.0 * dd.dPdDe[1] .* (Cs.^2 .- Y .* dd.dPdDe[1]) ./ (Tau .* X),
+          - Vd3 .* dd.dPdDe[1],
+          + 0.5 * dd.dPdDe[1] ]
+
+    return invR
 end

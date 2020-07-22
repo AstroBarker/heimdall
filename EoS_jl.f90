@@ -9,9 +9,11 @@ SUBROUTINE ComputeDerivatives_Pressure &
     ComputeSpecificInternalEnergy_TABLE, &
     ComputeAuxiliary_Fluid_TABLE, &
     ComputePressure_TABLE
-  USE EquationOfStateModule, ONLY: &
-    InitializeEquationOfState, &
-    FinalizeEquationOfState
+  USE EquationOfStateModule_TABLE, only: &
+    InitializeEquationOfState_TABLE, &
+    FinalizeEquationOfState_TABLE
+  USE ProgramInitializationModule, ONLY: &
+    FinalizeProgram
   USE UnitsModule, ONLY: &
     AtomicMassUnit, &
     BoltzmannConstant, &
@@ -49,10 +51,8 @@ SUBROUTINE ComputeDerivatives_Pressure &
   E2 = E * ( Erg / Centimeter**3 )
   Ne2 = Ne * ( 1.0_DP / Centimeter**3 )
   
-  CALL InitializeEquationOfState &
-    ( EquationOfState_Option &
-        = 'TABLE', &
-      EquationOfStateTableName_Option &
+  CALL InitializeEquationOfState_TABLE &
+    ( EquationOfStateTableName_Option &
         = TRIM( EosTableName ) )
 
   ! CALL ComputePrimitive_Euler_NonRelativistic &
@@ -86,7 +86,7 @@ SUBROUTINE ComputeDerivatives_Pressure &
   dPdT = dPdT / ( ( Erg / Centimeter**3 ) / Kelvin )
   dPdY = dPdY / ( Erg / Centimeter**3 )  
 
-  CALL FinalizeEquationOfState
+  CALL FinalizeEquationOfState_TABLE
 
 END SUBROUTINE ComputeDerivatives_Pressure
 
@@ -100,9 +100,11 @@ SUBROUTINE ComputeSpecificInternalenergy_Output(D, E, Ne, nx, Em)
     ComputeSpecificInternalEnergy_TABLE, &
     ComputeAuxiliary_Fluid_TABLE, &
     ComputePressure_TABLE
-  USE EquationOfStateModule, ONLY: &
-    InitializeEquationOfState, &
-    FinalizeEquationOfState
+  USE EquationOfStateModule_TABLE, only: &
+    InitializeEquationOfState_TABLE, &
+    FinalizeEquationOfState_TABLE
+  USE ProgramInitializationModule, ONLY: &
+    FinalizeProgram
   USE UnitsModule, ONLY: &
     AtomicMassUnit, &
     BoltzmannConstant, &
@@ -135,10 +137,8 @@ SUBROUTINE ComputeSpecificInternalenergy_Output(D, E, Ne, nx, Em)
   E2 = E * ( Erg / Centimeter**3 )
   Ne2 = Ne * ( 1.0_DP / Centimeter**3 )
 
-  CALL InitializeEquationOfState &
-    ( EquationOfState_Option &
-        = 'TABLE', &
-      EquationOfStateTableName_Option &
+  CALL InitializeEquationOfState_TABLE &
+    ( EquationOfStateTableName_Option &
         = TRIM( EosTableName ) )
 
   CALL ComputeAuxiliary_Fluid_TABLE &
@@ -149,7 +149,7 @@ SUBROUTINE ComputeSpecificInternalenergy_Output(D, E, Ne, nx, Em)
 
   Em = Em / ( Erg / Gram )
 
-  CALL FinalizeEquationOfState
+  CALL FinalizeEquationOfState_TABLE
 
 END SUBROUTINE ComputeSpecificInternalenergy_Output
 
@@ -164,9 +164,11 @@ SUBROUTINE ComputeDerivatives_Pressure_Scalar &
     ComputeSpecificInternalEnergy_TABLE, &
     ComputeAuxiliary_Fluid_TABLE, &
     ComputePressure_TABLE
-  USE EquationOfStateModule, ONLY: &
-    InitializeEquationOfState, &
-    FinalizeEquationOfState
+  USE EquationOfStateModule_TABLE, only: &
+    InitializeEquationOfState_TABLE, &
+    FinalizeEquationOfState_TABLE
+  USE ProgramInitializationModule, ONLY: &
+    FinalizeProgram
   USE UnitsModule, ONLY: &
     AtomicMassUnit, &
     BoltzmannConstant, &
@@ -201,10 +203,8 @@ SUBROUTINE ComputeDerivatives_Pressure_Scalar &
   E2 = E * ( Erg / Centimeter**3 )
   Ne2 = Ne * ( 1.0_DP / Centimeter**3 )
   
-  CALL InitializeEquationOfState &
-    ( EquationOfState_Option &
-        = 'TABLE', &
-      EquationOfStateTableName_Option &
+  CALL InitializeEquationOfState_TABLE &
+    ( EquationOfStateTableName_Option &
         = TRIM( EosTableName ) )
 
   CALL ComputeAuxiliary_Fluid_TABLE &
@@ -229,5 +229,7 @@ SUBROUTINE ComputeDerivatives_Pressure_Scalar &
   dPdD = dPdD / ( Erg / Gram )
   dPdT = dPdT / ( ( Erg / Centimeter**3 ) / Kelvin )
   dPdY = dPdY / ( Erg / Centimeter**3 ) 
+
+  CALL FinalizeEquationOfState_TABLE
 
 END SUBROUTINE ComputeDerivatives_Pressure_Scalar
