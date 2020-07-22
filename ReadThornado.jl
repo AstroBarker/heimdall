@@ -36,8 +36,9 @@ function load_thornado_single( Dir::AbstractString, filenumber::AbstractString; 
     uPF_V1 = fid["/Fluid Fields/Primitive/Three-Velocity (1)"][:,1,1]
     uPF_V2 = fid["/Fluid Fields/Primitive/Three-Velocity (2)"][:,1,1]
     uPF_V3 = fid["/Fluid Fields/Primitive/Three-Velocity (3)"][:,1,1]
-    uPF_Em = fid["/Fluid Fields/Primitive/Internal Energy Density"][:,1,1]
+    uPF_Ev = fid["/Fluid Fields/Primitive/Internal Energy Density"][:,1,1]
     uAF_T  = fid["/Fluid Fields/Auxiliary/Temperature"][:,1,1]
+    uAF_Em = fid["/Fluid Fields/Auxiliary/Specific Internal Energy"][:,1,1]
     uAF_Ye = fid["/Fluid Fields/Auxiliary/Electron Fraction"][:,1,1]
     uAF_P  = fid["/Fluid Fields/Auxiliary/Pressure"][:,1,1]
     uAF_S  = fid["/Fluid Fields/Auxiliary/Entropy Per Baryon"][:,1,1]
@@ -48,7 +49,7 @@ function load_thornado_single( Dir::AbstractString, filenumber::AbstractString; 
     println("Time: $t" )
 
     DataFrame( x1=x1, uCF_D=uCF_D, uCF_E=uCF_E, uAF_T=uAF_T, uAF_Ye=uAF_Ye, uAF_P=uAF_P, uAF_Cs=uAF_Cs, uCF_Ne=uCF_Ne, 
-               uPF_V1=uPF_V1, uPF_V2=uPF_V2, uPF_V3=uPF_V3, uPF_Em=uPF_Em )
+               uPF_V1=uPF_V1, uPF_V2=uPF_V2, uPF_V3=uPF_V3, uPF_Ev=uPF_Ev, uAF_Em=uAF_Em )
 end
 
 function cell_average(df::DataFrame, nNodes::Int)

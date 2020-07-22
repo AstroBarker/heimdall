@@ -157,7 +157,7 @@ function ComputeSpecificInternalEnergy( D::Array{Float64,1}, E::Array{Float64,1}
     # type, the next parameters are input types, followed 
     # by the arguements. 
     # ======================================================================
-    ccall( (:computespecificinternalenergy_output_, "./EoS_Py.so"), Cvoid, 
+    ccall( (:computespecificinternalenergy_output_, "./EoS_jl.so"), Cvoid, 
     ( Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Int64}, Ref{Float64} ), 
     D, E, Ne, nx, Em )
 
