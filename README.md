@@ -17,3 +17,9 @@ _thornado_'s environment variables to be set:
 
 # Useage
 
+Assuming that _thornado_ and _weaklib_ are set up correctly, you should just be able to `make`.
+...
+
+# TODO:
+
+Currently, notebooks will crash when using two FORTRAN calls.

@@ -1,6 +1,3 @@
-FC=gnu95
-F2PY=f2py
-
 MACHINE = $(THORNADO_MACHINE)
 
 OPT_LEVEL = DEBUG
@@ -16,28 +13,28 @@ WEAKLIB_DIR ?= $(HOME)/weaklib
 include $(WEAKLIB_DIR)/Distributions/Build/Makefile_Path
 include $(WEAKLIB_DIR)/Distributions/Build/Makefile_WeakLib_ObjectFiles
 
-all: EoS_Py
+all: EoS_jl
 
 clean:
 	rm -f *.o *.mod *.ld *.so
 
-EoS_Py: \
+EoS_jl: \
 	$(weaklib) \
 	$(thornado) \
-        EoS_Py.o
-	$(FLINKER) $(FLAGS) -dynamiclib -shared -fPIC -o EoS_Py.so \
+        EoS_jl.o
+	$(FLINKER) $(FLAGS) -dynamiclib -shared -fPIC -o EoS_jl.so \
         $(weaklib) \
         $(thornado) \
-        EoS_Py.o \
+        EoS_jl.o \
         $(LIBRARIES)
 
 # makes executable.
-# EoS_Py: \
+# EoS_jl: \
 # 	$(weaklib) \
 # 	$(thornado) \
-#         EoS_Py.o
-# 	$(FLINKER) $(FLAGS) -o EoS_Py_$(MACHINE) \
+#         EoS_jl.o
+# 	$(FLINKER) $(FLAGS) -o EoS_jl_$(MACHINE) \
 #         $(weaklib) \
 #         $(thornado) \
-#         EoS_Py.o \
+#         EoS_jl.o \
 #         $(LIBRARIES)

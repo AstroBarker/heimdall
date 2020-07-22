@@ -223,21 +223,21 @@ function Compute_R( D::Array{Float64, 1}, E::Array{Float64, 1}, Ne::Array{Float6
     Gmdd33::Float64 - Diagonal components of metric
     """
 
-    R::Array{Float64,2} = zeros(6,6)
+    R::Array{Float64,3} = zeros( length(D), 6, 6 )
 
-    dd:DataFrame = ComputeDerivatives_pressure( D, E, Ne, Gmdd11, Gmdd22, Gmdd33 );
+    dd::DataFrame = ComputeDerivatives_pressure( D, E, Ne, Gmdd11, Gmdd22, Gmdd33 );
 
     Vd1::Array{Float64,1} = Gmdd11 * Vu1
     Vd2::Array{Float64,1} = Gmdd22 * Vu2
     Vd3::Array{Float64,1} = Gmdd33 * Vu3
 
-    Vsq::Array{Float64,1} = Vu1 * Vd1 + Vu2 * Vd2 + Vu3 * Vd3
+    Vsq::Array{Float64,1} = Vu1 .* Vd1 + Vu2 .* Vd2 + Vu3 .* Vd3
 
     Tau::Array{Float64,1} = 1.0 ./ D
-    Delta::Array{Float64,1} = Vu1 * Vd1 - Vu2 * Vd2 - Vu3 * Vd3
+    Delta::Array{Float64,1} = Vu1 .* Vd1 - Vu2 .* Vd2 - Vu3 .* Vd3
     B::Array{Float64,1} = 0.5 .* ( Delta + 2.0 .* Em + 
-        (2.0 .* dd.dPdTau * Tau) ./ dd.dPdE)
-    X::Array{Float64,1} = (dd.PdE .* ( Delta + 2.0 * Em) + 2.0 * dd.dPdTau .* Tau )
+        (2.0 .* dd.dPdTau .* Tau) ./ dd.dPdE)
+    X::Array{Float64,1} = (dd.dPdE .* ( Delta + 2.0 * Em) + 2.0 * dd.dPdTau .* Tau )
 
     K::Array{Float64,1} = ( ( - ( Y ./ Tau ) .* dd.dPdDe + dd.dPdE .* ( 
           0.5 * Vsq + Em ) + dd.dPdTau .* Tau ) ./ ( dd.dPdE ) )
@@ -245,20 +245,27 @@ function Compute_R( D::Array{Float64, 1}, E::Array{Float64, 1}, Ne::Array{Float6
     # TODO: Replace H with Tau(E+P)
     # TODO: Try analytic sound speed?
 
-    # TODO: WHAT to do about R? What shape in this useage? R[nx, nx, nx]
+    # TODO: WHAT to do about R? What shape in this useage? R[nx, 6, 6]
 
-    R[:,1] = [ 1.0, Vd1 - Cs .* sqrt.( Gmdd11 ), Vd2, 
-       Vd3, H - Cs .* sqrt.( Gmdd11 ) .* Vu1, Y ]
-    R[:,2] = [ 0.0, 0.0, 1.0, 0.0, Vu2, 0.0 ]
-    R[:,3] = [ 1.0, Vd1, 0.0, 0.0, B, 0.0 ]
-    R[:,4] = [ 1.0, Vd1, 0.0, 0.0, 0.0,
-       (Tau .* X) ./ (2.0 * dd.dPdDe) ]
-    R[:,5] = [ 0.0, 0.0, 0.0, 1.0, Vu3, 0.0 ]
-    R[:,6] = [ 1.0, Vd1 + Cs .* sqrt.( Gmdd11 ), Vd2,
-        Vd3, H + Cs .* sqrt.( Gmdd11 ) .* Vu1, Y ]
+    for i in 1:length(D)
+
+    R[i,:,1] = [ 1.0, Vd1[i] - Cs[i] .* sqrt.( Gmdd11 ), Vd2[i], 
+       Vd3[i], H[i] - Cs[i] .* sqrt.( Gmdd11 ) .* Vu1[i], Y[i] ]
+    R[i,:,2] = [ 0.0, 0.0, 1.0, 0.0, Vu2[i], 0.0 ]
+    R[i,:,3] = [ 1.0, Vd1[i], 0.0, 0.0, B[i], 0.0 ]
+    R[i,:,4] = [ 1.0, Vd1[i], 0.0, 0.0, 0.0,
+       (Tau[i] .* X[i]) ./ (2.0 * dd.dPdDe[i]) ]
+    R[i,:,5] = [ 0.0, 0.0, 0.0, 1.0, Vu3[i], 0.0 ]
+    R[i,:,6] = [ 1.0, Vd1[i] + Cs[i] .* sqrt.( Gmdd11 ), Vd2[i],
+        Vd3[i], H[i] + Cs[i] .* sqrt.( Gmdd11 ) .* Vu1[i], Y[i] ]
+
+    end
+
+    return R
+
 end
 
-function ComputeR( D::Float64, E::Float64, Ne::Float64, 
+function Compute_R( D::Float64, E::Float64, Ne::Float64, 
     Vu1::Float64, Vu2::Float64, Vu3::Float64, 
     Y::Float64, Em::Float64, Cs::Float64,
     Gmdd11::Float64, Gmdd22::Float64, Gmdd33::Float64 )
@@ -305,7 +312,6 @@ function ComputeR( D::Float64, E::Float64, Ne::Float64,
     # TODO: Replace H with Tau(E+P)
     # TODO: Try analytic sound speed?
 
-
     R[:,1] = [ 1.0, Vd1 - Cs .* sqrt.( Gmdd11 ), Vd2, 
        Vd3, H - Cs .* sqrt.( Gmdd11 ) .* Vu1, Y ]
     R[:,2] = [ 0.0, 0.0, 1.0, 0.0, Vu2, 0.0 ]
@@ -315,4 +321,6 @@ function ComputeR( D::Float64, E::Float64, Ne::Float64,
     R[:,5] = [ 0.0, 0.0, 0.0, 1.0, Vu3, 0.0 ]
     R[:,6] = [ 1.0, Vd1 + Cs .* sqrt.( Gmdd11 ), Vd2,
         Vd3, H + Cs .* sqrt.( Gmdd11 ) .* Vu1, Y ]
+
+    return R
 end
