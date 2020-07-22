@@ -37,7 +37,7 @@ Implement characteristic decomposition functions.
 
 using DataFrames
 
-function computeDerivatives_pressure( D::Array{Float64, 1}, E::Array{Float64, 1}, Ne::Array{Float64,1}, 
+function ComputeDerivatives_pressure( D::Array{Float64, 1}, E::Array{Float64, 1}, Ne::Array{Float64,1}, 
     Gmdd11::Float64, Gmdd22::Float64, Gmdd33::Float64 )
     """
     Call ComputeDerivatives_Pressure() from EoS_jl.f90 to compute thermodynamic derivatives 
@@ -74,7 +74,7 @@ function computeDerivatives_pressure( D::Array{Float64, 1}, E::Array{Float64, 1}
     # type, the next parameters are input types, followed 
     # by the arguements. 
     # =============================================================
-    ccall( (:computederivatives_pressure_, "./EoS_Py.so"), Cvoid, 
+    ccall( (:computederivatives_pressure_, "./EoS_jl.so"), Cvoid, 
     ( Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Int64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, 
     Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Float64} ), 
     D, E, Ne, nx, Gmdd11, Gmdd22, Gmdd33, dPdD, dPdT, dPdY, dPdE, dPdDe, dPdTau )
@@ -85,7 +85,7 @@ function computeDerivatives_pressure( D::Array{Float64, 1}, E::Array{Float64, 1}
 
 end    
 
-function computeDerivatives_pressure( D::Float64, E::Float64, Ne::Float64, 
+function ComputeDerivatives_pressure( D::Float64, E::Float64, Ne::Float64, 
     Gmdd11::Float64, Gmdd22::Float64, Gmdd33::Float64 )
     """
     Call ComputeDerivatives_Pressure() from EoS_jl.f90 to compute thermodynamic derivatives 
@@ -122,19 +122,19 @@ function computeDerivatives_pressure( D::Float64, E::Float64, Ne::Float64,
     # Probably due to my ignorance, but it's the only way I could 
     # get it to work.
     # =============================================================
-    ccall( (:computederivatives_pressure_scalar_, "./EoS_Py.so"), Nothing, 
+    ccall( (:computederivatives_pressure_scalar_, "./EoS_jl.so"), Nothing, 
     ( Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Int64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, 
     Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Float64} ), 
     D, E, Ne, nx, Gmdd11, Gmdd22, Gmdd33, dPdD, dPdT, dPdY, dPdE, dPdDe, dPdTau )
     
-    df = DataFrame(dPdD=dPdD.x[1], dPdT=dPdT.x[1], dPdY=dPdY.x[1], 
-                   dPdE=dPdE.x[1], dPdDe=dPdDe.x[1], dPdTau=dPdTau.x[1])
+    df = DataFrame(dPdD=dPdD.x[1][1], dPdT=dPdT.x[1][1], dPdY=dPdY.x[1][1], 
+                   dPdE=dPdE.x[1][1], dPdDe=dPdDe.x[1][1], dPdTau=dPdTau.x[1][1])
 
     return df
 
 end   
 
-function computeSpecificInternalEnergy( D::Array{Float64,1}, E::Array{Float64,1}, Ne::Array{Float64,1} )
+function ComputeSpecificInternalEnergy( D::Array{Float64,1}, E::Array{Float64,1}, Ne::Array{Float64,1} )
     """
     Call ComputeSpecificInternalEnergy_Output() from EoS_jl.f90.
 
@@ -167,7 +167,7 @@ end
 
 
 
-function cs( D::Array{Float64,1}, P::Array{Float64,1}, Y::Array{Float64,1}, 
+function Cs( D::Array{Float64,1}, P::Array{Float64,1}, Y::Array{Float64,1}, 
     dPdE::Array{Float64,1}, dPdDe::Array{Float64,1}, dPdTau::Array{Float64,1} )
     """
     Compute analytic sound speed in cm/s using expression in Barker et al senior thesis.
@@ -184,7 +184,7 @@ function cs( D::Array{Float64,1}, P::Array{Float64,1}, Y::Array{Float64,1},
     CsSq::Array{Float64,1} = Tau.^2 .* ( P .* dPdE .- dPdTau ) .+ Y .* dPdDe 
 end
 
-function cs( D::Float64, P::Float64, dPdE::Float64, 
+function Cs( D::Float64, P::Float64, dPdE::Float64, 
     dPdTau::Float64, Y::Float64, dPdDe::Float64 )
     """
     Compute analytic sound speed in cm/s using expression in Barker et al senior thesis.
@@ -200,7 +200,7 @@ function cs( D::Float64, P::Float64, dPdE::Float64,
     CsSq::Float64 = Tau^2 * ( P * dPdE - dPdTau ) + Y * dPdDe 
 end
 
-function R( D::Array{Float64, 1}, E::Array{Float64, 1}, Ne::Array{Float64, 1}, 
+function Compute_R( D::Array{Float64, 1}, E::Array{Float64, 1}, Ne::Array{Float64, 1}, 
     Vu1::Array{Float64, 1}, Vu2::Array{Float64, 1}, Vu3::Array{Float64, 1}, 
     Y::Array{Float64,1}, Em::Array{Float64, 1}, Cs::Array{Float64,1},
     Gmdd11::Float64, Gmdd22::Float64, Gmdd33::Float64 )
@@ -225,7 +225,7 @@ function R( D::Array{Float64, 1}, E::Array{Float64, 1}, Ne::Array{Float64, 1},
 
     R::Array{Float64,2} = zeros(6,6)
 
-    dd:DataFrame = computeDerivatives_pressure( D, E, Ne, Gmdd11, Gmdd22, Gmdd33 );
+    dd:DataFrame = ComputeDerivatives_pressure( D, E, Ne, Gmdd11, Gmdd22, Gmdd33 );
 
     Vd1::Array{Float64,1} = Gmdd11 * Vu1
     Vd2::Array{Float64,1} = Gmdd22 * Vu2
@@ -258,12 +258,14 @@ function R( D::Array{Float64, 1}, E::Array{Float64, 1}, Ne::Array{Float64, 1},
         Vd3, H + Cs .* sqrt.( Gmdd11 ) .* Vu1, Y ]
 end
 
-function R( D::Float64, E::Float64, Ne::Float64, 
+function ComputeR( D::Float64, E::Float64, Ne::Float64, 
     Vu1::Float64, Vu2::Float64, Vu3::Float64, 
     Y::Float64, Em::Float64, Cs::Float64,
     Gmdd11::Float64, Gmdd22::Float64, Gmdd33::Float64 )
     """
     Compute the matrix of right eigenvectors from Barker et al.
+
+    Note: we access derivatives as dd.dPdx[1] as they are returned as single element arrays.
 
     Parameters:
     -----------
@@ -294,12 +296,12 @@ function R( D::Float64, E::Float64, Ne::Float64,
     Tau::Float64 = 1.0 ./ D
     Delta::Float64 = Vu1 * Vd1 - Vu2 * Vd2 - Vu3 * Vd3
     B::Float64 = 0.5 .* ( Delta + 2.0 .* Em + 
-        (2.0 .* dd.dPdTau * Tau) ./ dd.dPdE)
-    X::Float64 = (dd.PdE .* ( Delta + 2.0 * Em) + 2.0 * dd.dPdTau .* Tau )
+        (2.0 .* dd.dPdTau[1] * Tau) ./ dd.dPdE[1])
+    X::Float64 = (dd.dPdE[1] .* ( Delta + 2.0 * Em) + 2.0 * dd.dPdTau[1] .* Tau )
 
-    K::Float64 = ( ( - ( Y ./ Tau ) .* dd.dPdDe + dd.dPdE .* ( 
-          0.5 * Vsq + Em ) + dd.dPdTau .* Tau ) ./ ( dd.dPdE ) )
-    H::Float64 = ( Cs.^2 ./ ( dd.dPdE .* Tau ) ) + K
+    K::Float64 = ( ( - ( Y ./ Tau ) .* dd.dPdDe[1] + dd.dPdE[1] .* ( 
+          0.5 * Vsq + Em ) + dd.dPdTau[1] .* Tau ) ./ ( dd.dPdE[1] ) )
+    H::Float64 = ( Cs.^2 ./ ( dd.dPdE[1] .* Tau ) ) + K
     # TODO: Replace H with Tau(E+P)
     # TODO: Try analytic sound speed?
 
@@ -309,7 +311,7 @@ function R( D::Float64, E::Float64, Ne::Float64,
     R[:,2] = [ 0.0, 0.0, 1.0, 0.0, Vu2, 0.0 ]
     R[:,3] = [ 1.0, Vd1, 0.0, 0.0, B, 0.0 ]
     R[:,4] = [ 1.0, Vd1, 0.0, 0.0, 0.0,
-       (Tau .* X) ./ (2.0 * dd.dPdDe) ]
+       (Tau .* X) ./ (2.0 * dd.dPdDe[1]) ]
     R[:,5] = [ 0.0, 0.0, 0.0, 1.0, Vu3, 0.0 ]
     R[:,6] = [ 1.0, Vd1 + Cs .* sqrt.( Gmdd11 ), Vd2,
         Vd3, H + Cs .* sqrt.( Gmdd11 ) .* Vu1, Y ]
