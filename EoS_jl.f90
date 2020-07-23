@@ -90,69 +90,6 @@ SUBROUTINE ComputeDerivatives_Pressure &
 
 END SUBROUTINE ComputeDerivatives_Pressure
 
-SUBROUTINE ComputeSpecificInternalenergy_Output(D, E, Ne, nx, Em)
-  ! Output specific internal energy
-  USE KindModule, ONLY: &
-    DP
-  USE Euler_UtilitiesModule_NonRelativistic, ONLY: &
-    ComputePrimitive_Euler_NonRelativistic
-  USE EquationOfStateModule_TABLE, ONLY: &
-    ComputeSpecificInternalEnergy_TABLE, &
-    ComputeAuxiliary_Fluid_TABLE, &
-    ComputePressure_TABLE
-  USE EquationOfStateModule_TABLE, only: &
-    InitializeEquationOfState_TABLE, &
-    FinalizeEquationOfState_TABLE
-  USE ProgramInitializationModule, ONLY: &
-    FinalizeProgram
-  USE UnitsModule, ONLY: &
-    AtomicMassUnit, &
-    BoltzmannConstant, &
-    Gram, &
-    Centimeter, &
-    Kelvin, &
-    Dyne, &
-    Erg, &
-    MeV, & 
-    Second, & 
-    Kilometer
-
-  INTEGER,  INTENT(in)  :: nx
-  REAL(DP), INTENT(in)  :: D(nx), E(nx), Ne(nx)
-  REAL(DP) :: D2(nx), E2(nx), Ne2(nx) ! remove units
-
-  REAL(DP), DIMENSION(nx) :: P, Cs_table
-  REAL(DP), DIMENSION(nx) :: T, Y, Gm, S
-  REAL(DP), DIMENSION(nx), INTENT(out) :: Em
-
-  REAL(DP), DIMENSION(nx) :: dEdD, dEdT, dEdY
-
-  CHARACTER(128) :: EosTableName 
-
-  EosTableName = 'wl-EOS-SFHo-25-50-100.h5'
-
-  ! ========================================================
-
-  D2 = D * ( Gram / Centimeter**3 )
-  E2 = E * ( Erg / Centimeter**3 )
-  Ne2 = Ne * ( 1.0_DP / Centimeter**3 )
-
-  CALL InitializeEquationOfState_TABLE &
-    ( EquationOfStateTableName_Option &
-        = TRIM( EosTableName ) )
-
-  CALL ComputeAuxiliary_Fluid_TABLE &
-        ( D2, E2, Ne2, P, T, Y, S, Em, Gm, Cs_table )
-
-  CALL ComputeSpecificInternalEnergy_TABLE &
-        ( D2, T, Y, Em, dEdD, dEdT, dEdY )
-
-  Em = Em / ( Erg / Gram )
-
-  CALL FinalizeEquationOfState_TABLE
-
-END SUBROUTINE ComputeSpecificInternalenergy_Output
-
 SUBROUTINE ComputeDerivatives_Pressure_Scalar & 
   ( D, E, Ne, nx, Gmdd11, Gmdd22, Gmdd33, dPdD, dPdT, dPdY, dPdE, dPdDe, dPdTau)
 

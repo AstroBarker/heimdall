@@ -32,10 +32,44 @@ cs(D, P, Y, dPdE, dPdDe, dPdTau ) - 2 methods
 TODO:
 ------
 
-Implement characteristic decomposition functions.
+Implement characteristic decomposition functions.[IP]
+Needs testing & work for general coordinates.
+
 """
+module Heimdall
 
 using DataFrames
+
+# ================================ Units Struct ================================
+
+struct Units
+    """
+    To switch to/from code units and physical units.
+    Multiply physical units by corresponding units to move to code units. Divide to go back.
+    e.g., rho = 1e13 * ( G / Cm^3 )
+
+    Erg : Erg
+    G : Gram
+    Cm : Centimeter
+    Km : Kilometer
+    S : Second
+    """
+    Erg        ::Float64
+    G       ::Float64
+    Cm ::Float64
+    Km  ::Float64
+    S     ::Float64
+end
+
+u = Units(8.2611082525066313e-052,
+    7.4247138240457958E-031,
+    1.0000000000000000e-002,
+    1000,
+    299792458.00000000)
+
+export u
+
+# ================================ Module Functions ================================
 
 function ComputeDerivatives_pressure( D::Array{Float64, 1}, E::Array{Float64, 1}, Ne::Array{Float64,1}, 
     Gmdd11::Float64, Gmdd22::Float64, Gmdd33::Float64 )
@@ -167,7 +201,7 @@ end
 
 
 
-function Cs( D::Array{Float64,1}, P::Array{Float64,1}, Y::Array{Float64,1}, 
+function Compute_Cs( D::Array{Float64,1}, P::Array{Float64,1}, Y::Array{Float64,1}, 
     dPdE::Array{Float64,1}, dPdDe::Array{Float64,1}, dPdTau::Array{Float64,1} )
     """
     Compute analytic sound speed in cm/s using expression in Barker et al senior thesis.
@@ -184,8 +218,8 @@ function Cs( D::Array{Float64,1}, P::Array{Float64,1}, Y::Array{Float64,1},
     CsSq::Array{Float64,1} = Tau.^2 .* ( P .* dPdE .- dPdTau ) .+ Y .* dPdDe 
 end
 
-function Cs( D::Float64, P::Float64, dPdE::Float64, 
-    dPdTau::Float64, Y::Float64, dPdDe::Float64 )
+function Compute_Cs( D::Float64, P::Float64, Y::Float64, 
+    dPdE::Float64, dPdDe::Float64, dPdTau::Float64 )
     """
     Compute analytic sound speed in cm/s using expression in Barker et al senior thesis.
     
@@ -309,6 +343,8 @@ function Compute_R1( D::Float64, E::Float64, Ne::Float64,
     K::Float64 = ( ( - ( Y ./ Tau ) .* dd.dPdDe[1] + dd.dPdE[1] .* ( 
           0.5 * Vsq + Em ) + dd.dPdTau[1] .* Tau ) ./ ( dd.dPdE[1] ) )
     H::Float64 = ( Cs.^2 ./ ( dd.dPdE[1] .* Tau ) ) + K
+    println(H * ( u.Erg / u.G )," ", K * ( u.Erg / u.G )," ", ( Cs.^2 ./ ( dd.dPdE[1] .* Tau ) ) * ( u.Erg / u.G ), " ", dd.dPdDe * ( u.Erg / u.G ), " ",
+        dd.dPdE * (u.G / u.Cm^3)," ", Em * ( u.Erg / u.G ) , " ",Tau /(u.G / u.Cm^3) )
     # TODO: Replace H with Tau(E+P)
     # TODO: Try analytic sound speed?
 
@@ -368,11 +404,11 @@ function Compute_invR1( D::Float64, E::Float64, Ne::Float64,
     Phi_d2::Float64 = dd.dPdE[1] .* Tau .* Vd2
     Phi_d3::Float64 = dd.dPdE[1] .* Tau .* Vd3
 
-    Vsq::Float64 = Vu1 * Vd1 + Vu2 * Vd2 + Vu3 * Vd3
+    Vsq::Float64 = Vu1 .* Vd1 + Vu2 .* Vd2 + Vu3 .* Vd3
 
-    Delta::Float64 = Vu1 * Vd1 - Vu2 * Vd2 - Vu3 * Vd3
+    Delta::Float64 = Vu1 .* Vd1 - Vu2 .* Vd2 - Vu3 .* Vd3
     B::Float64 = 0.5 .* ( Delta + 2.0 .* Em + 
-        (2.0 .* dd.dPdTau[1] * Tau) ./ dd.dPdE[1])
+        (2.0 .* dd.dPdTau[1] .* Tau) ./ dd.dPdE[1])
     X::Float64 = (dd.dPdE[1] .* ( Delta + 2.0 * Em) + 2.0 * dd.dPdTau[1] .* Tau )
 
     K::Float64 = ( ( - ( Y ./ Tau ) .* dd.dPdDe[1] + dd.dPdE[1] .* ( 
@@ -389,7 +425,7 @@ function Compute_invR1( D::Float64, E::Float64, Ne::Float64,
     invR[:,1] = invCsSq .*
         [ + 0.25 * (W + 2.0 * Cs .* sqrt.( Gmdd11 ) .* Vu1), 
           - 0.5 * Vd2 .* W,
-          + (2.0 * Cs.^2 * X + Alpha .* W ./ Tau)./(2.0 .* X),
+          + (2.0 * Cs.^2 * X + Alpha .* W ./ Tau) ./ (2.0 .* X),
           - (Y) .* dd.dPdDe[1] .* W / (X .* Tau),
           - 0.5 * Vd3 .* W,
           + 0.25 * (W - 2.0 * Cs .* sqrt.( Gmdd11 ) .* Vu1) ]
@@ -435,4 +471,6 @@ function Compute_invR1( D::Float64, E::Float64, Ne::Float64,
           + 0.5 * dd.dPdDe[1] ]
 
     return invR
+end
+
 end

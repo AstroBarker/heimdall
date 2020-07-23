@@ -22,5 +22,8 @@ Assuming that _thornado_ and _weaklib_ are set up correctly, you should just be 
 
 # TODO:
 
-Implement a "remove the units"
-Implement Multi-D stuff and things
+* Implement optional arguement to functions - "remove units"
+ * May need a new "composite type" for holding data that is unit - aware?
+ * Have to modify FORTRAN routines to accept unitless inputs
+
+* Implement Multi-D stuff and things
