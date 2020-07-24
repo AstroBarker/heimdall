@@ -32,7 +32,7 @@ cs(D, P, Y, dPdE, dPdDe, dPdTau ) - 2 methods
 TODO:
 ------
 
-Implement characteristic decomposition functions.[IP]
+Implement characteristic decomposition functions.[IP] [Buggy]
 Needs testing & work for general coordinates.
 
 """
@@ -63,16 +63,16 @@ end
 
 u = Units(8.2611082525066313e-052,
     7.4247138240457958E-031,
-    1.0000000000000000e-002,
-    1000,
-    299792458.00000000)
+    1.0e-2,
+    1000.0,
+    299792458.0)
 
 export u
 
 # ================================ Module Functions ================================
 
 function ComputeDerivatives_pressure( D::Array{Float64, 1}, E::Array{Float64, 1}, Ne::Array{Float64,1}, 
-    Gmdd11::Float64, Gmdd22::Float64, Gmdd33::Float64 )
+    Gmdd11::Array{Float64, 1}, Gmdd22::Array{Float64, 1}, Gmdd33::Array{Float64, 1}; Units_Option::Bool=true )
     """
     Call ComputeDerivatives_Pressure() from EoS_jl.f90 to compute thermodynamic derivatives 
     of pressure. This routine takes the conserved variables D, E, Ne as primary inputs and 
@@ -88,9 +88,10 @@ function ComputeDerivatives_pressure( D::Array{Float64, 1}, E::Array{Float64, 1}
     D::Array{Float64, 1} - thornado density profile
     E::Array{Float64, 1} - thornado conserved energy density profile
     Ne::Array{Float64,1} - thornado conserved electron fraction profile
-    Gmdd11::Float64 - Diagonal components of metric
-    Gmdd22::Float64 - Diagonal components of metric
-    Gmdd33::Float64 - Diagonal components of metric
+    Gmdd11::Array{Float64, 1} - Diagonal components of metric
+    Gmdd22::Array{Float64, 1} - Diagonal components of metric
+    Gmdd33::Array{Float64, 1} - Diagonal components of metric
+    Units_Option::Bool (default: true) - if true, inputs are given in physical units
     """
 
     # Initialize arrays to hold derivatives
@@ -110,8 +111,8 @@ function ComputeDerivatives_pressure( D::Array{Float64, 1}, E::Array{Float64, 1}
     # =============================================================
     ccall( (:computederivatives_pressure_, "./EoS_jl.so"), Cvoid, 
     ( Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Int64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, 
-    Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Float64} ), 
-    D, E, Ne, nx, Gmdd11, Gmdd22, Gmdd33, dPdD, dPdT, dPdY, dPdE, dPdDe, dPdTau )
+    Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Bool} ), 
+    D, E, Ne, nx, Gmdd11, Gmdd22, Gmdd33, dPdD, dPdT, dPdY, dPdE, dPdDe, dPdTau, Units_Option )
 
     df = DataFrame(dPdD=dPdD, dPdT=dPdT, dPdY=dPdY, dPdE=dPdE, dPdDe=dPdDe, dPdTau=dPdTau)
 
@@ -120,7 +121,7 @@ function ComputeDerivatives_pressure( D::Array{Float64, 1}, E::Array{Float64, 1}
 end    
 
 function ComputeDerivatives_pressure( D::Float64, E::Float64, Ne::Float64, 
-    Gmdd11::Float64, Gmdd22::Float64, Gmdd33::Float64 )
+    Gmdd11::Float64, Gmdd22::Float64, Gmdd33::Float64; Units_Option::Bool=true )
     """
     Call ComputeDerivatives_Pressure() from EoS_jl.f90 to compute thermodynamic derivatives 
     of pressure. This routine takes the conserved variables D, E, Ne as primary inputs and 
@@ -135,6 +136,7 @@ function ComputeDerivatives_pressure( D::Float64, E::Float64, Ne::Float64,
     Gmdd11::Float64 - Diagonal components of metric
     Gmdd22::Float64 - Diagonal components of metric
     Gmdd33::Float64 - Diagonal components of metric
+    Units_Option::Bool (default: true) - if true, inputs are given in physical units
     """
 
     # Initialize arrays to hold derivatives
@@ -158,8 +160,8 @@ function ComputeDerivatives_pressure( D::Float64, E::Float64, Ne::Float64,
     # =============================================================
     ccall( (:computederivatives_pressure_scalar_, "./EoS_jl.so"), Nothing, 
     ( Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Int64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, 
-    Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Float64} ), 
-    D, E, Ne, nx, Gmdd11, Gmdd22, Gmdd33, dPdD, dPdT, dPdY, dPdE, dPdDe, dPdTau )
+    Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Bool} ), 
+    D, E, Ne, nx, Gmdd11, Gmdd22, Gmdd33, dPdD, dPdT, dPdY, dPdE, dPdDe, dPdTau, Units_Option )
     
     df = DataFrame(dPdD=dPdD.x[1][1], dPdT=dPdT.x[1][1], dPdY=dPdY.x[1][1], 
                    dPdE=dPdE.x[1][1], dPdDe=dPdDe.x[1][1], dPdTau=dPdTau.x[1][1])
@@ -168,49 +170,18 @@ function ComputeDerivatives_pressure( D::Float64, E::Float64, Ne::Float64,
 
 end   
 
-function ComputeSpecificInternalEnergy( D::Array{Float64,1}, E::Array{Float64,1}, Ne::Array{Float64,1} )
-    """
-    Call ComputeSpecificInternalEnergy_Output() from EoS_jl.f90.
-
-    !!! NOT IN USE !!!
-
-    Parameters:
-    -----------
-    D::Array{Float64, 1} - thornado density profile
-    E::Array{Float64, 1} - thornado conserved energy density profile
-    Ne::Array{Float64,1} - thornado conserved electron fraction profile
-    """
-
-    # Initialize arrays
-    nx = length( D )
-    Em = zeros( nx )
-
-    # ======================================================================
-    # This calls the FORTRAN function :computespecificinternalenergy_output_
-    # FORTRAN compilation mangles the name. Cvoid is the return 
-    # type, the next parameters are input types, followed 
-    # by the arguements. 
-    # ======================================================================
-    ccall( (:computespecificinternalenergy_output_, "./EoS_jl.so"), Cvoid, 
-    ( Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Int64}, Ref{Float64} ), 
-    D, E, Ne, nx, Em )
-
-    return Em
-
-end
-
-
-
 function Compute_Cs( D::Array{Float64,1}, P::Array{Float64,1}, Y::Array{Float64,1}, 
-    dPdE::Array{Float64,1}, dPdDe::Array{Float64,1}, dPdTau::Array{Float64,1} )
+    dPdE::Array{Float64,1}, dPdDe::Array{Float64,1}, dPdTau::Array{Float64,1}; Units_Option::Bool=true )
     """
-    Compute analytic sound speed in cm/s using expression in Barker et al senior thesis.
+    Compute analytic sound speed using expression in Barker et al senior thesis.
+    If passed with units, this will be in cm/s.
 
     Parameters:
     -----------
     D::Array{Float64, 1} - thornado density profile
     P::Array{Float64, 1} - thornado pressure profile
     Y::Array{Float64, 1} - thornado electron fraction profile
+    Units_Option::Bool (default: true) - if true, inputs are given in physical units
     """
 
     Tau::Array{Float64,1} = 1.0 ./ D
@@ -219,15 +190,17 @@ function Compute_Cs( D::Array{Float64,1}, P::Array{Float64,1}, Y::Array{Float64,
 end
 
 function Compute_Cs( D::Float64, P::Float64, Y::Float64, 
-    dPdE::Float64, dPdDe::Float64, dPdTau::Float64 )
+    dPdE::Float64, dPdDe::Float64, dPdTau::Float64; Units_Option::Bool=true )
     """
-    Compute analytic sound speed in cm/s using expression in Barker et al senior thesis.
+    Compute analytic sound speed using expression in Barker et al senior thesis.
+    If passed with units, this will be in cm/s.
     
     Parameters:
     -----------
     D::Float64 - thornado density profile
     P::Float64 - thornado pressure profile
     Y::Float64 - thornado electron fraction profile
+    Units_Option::Bool (default: true) - if true, inputs are given in physical units
     """
 
     Tau::Float64 = 1.0 / D
@@ -237,7 +210,8 @@ end
 function Compute_R1( D::Array{Float64, 1}, E::Array{Float64, 1}, Ne::Array{Float64, 1}, 
     Vu1::Array{Float64, 1}, Vu2::Array{Float64, 1}, Vu3::Array{Float64, 1}, 
     Y::Array{Float64,1}, Em::Array{Float64, 1}, Cs::Array{Float64,1},
-    Gmdd11::Float64, Gmdd22::Float64, Gmdd33::Float64 )
+    Gmdd11::Array{Float64,1}, Gmdd22::Array{Float64,1}, Gmdd33::Array{Float64,1}; 
+    Units_Option::Bool=true )
     """
     Compute the matrix of right eigenvectors from Barker et al.
 
@@ -252,18 +226,30 @@ function Compute_R1( D::Array{Float64, 1}, E::Array{Float64, 1}, Ne::Array{Float
     Y::Array{Float64,1} - thornado electron fraction
     Cs::Array{Float64,1} - thornado sound speed
     Em::Array{Float64,1} - thornado speciic internal energy
-    Gmdd11::Float64 - Diagonal components of metric
-    Gmdd22::Float64 - Diagonal components of metric
-    Gmdd33::Float64 - Diagonal components of metric
+    Gmdd11::Array{Float64,1} - Diagonal components of metric
+    Gmdd22::Array{Float64,1} - Diagonal components of metric
+    Gmdd33::Array{Float64,1} - Diagonal components of metric
+    Units_Option::Bool (default: true) - if true, inputs are given in physical units
     """
 
     R::Array{Float64,3} = zeros( length(D), 6, 6 )
 
-    dd::DataFrame = ComputeDerivatives_pressure( D, E, Ne, Gmdd11, Gmdd22, Gmdd33 );
+    if ( Units_Option == false )
+        D *= (7.4247138240457958E-031 / (1.0e-2)^3.0 )
+        E *= (8.2611082525066313e-52 / (1.0e-2)^3.0 )
+        Ne /=  (1.0e-2)^3.0
+        Vu1 *= (1.0e-2 / 299792458.0)
+        Vu2 *= (1.0e-2 / 299792458.0)
+        Vu3 *= (1.0e-2 / 299792458.0)
+        Cs *= (1.0e-2 / 299792458.0)
+        Em *= (8.2611082525066313e-52 / 7.4247138240457958E-031)
+    end
 
-    Vd1::Array{Float64,1} = Gmdd11 * Vu1
-    Vd2::Array{Float64,1} = Gmdd22 * Vu2
-    Vd3::Array{Float64,1} = Gmdd33 * Vu3
+    dd::DataFrame = ComputeDerivatives_pressure( D, E, Ne, Gmdd11, Gmdd22, Gmdd33, Units_Option=Units_Option )
+
+    Vd1::Array{Float64,1} = Gmdd11 .* Vu1
+    Vd2::Array{Float64,1} = Gmdd22 .* Vu2
+    Vd3::Array{Float64,1} = Gmdd33 .* Vu3
 
     Vsq::Array{Float64,1} = Vu1 .* Vd1 + Vu2 .* Vd2 + Vu3 .* Vd3
 
@@ -279,19 +265,17 @@ function Compute_R1( D::Array{Float64, 1}, E::Array{Float64, 1}, Ne::Array{Float
     # TODO: Replace H with Tau(E+P)
     # TODO: Try analytic sound speed?
 
-    # TODO: WHAT to do about R? What shape in this useage? R[nx, 6, 6]
-
     for i in 1:length(D)
-
-    R[i,:,1] = [ 1.0, Vd1[i] - Cs[i] .* sqrt.( Gmdd11 ), Vd2[i], 
-       Vd3[i], H[i] - Cs[i] .* sqrt.( Gmdd11 ) .* Vu1[i], Y[i] ]
-    R[i,:,2] = [ 0.0, 0.0, 1.0, 0.0, Vu2[i], 0.0 ]
-    R[i,:,3] = [ 1.0, Vd1[i], 0.0, 0.0, B[i], 0.0 ]
-    R[i,:,4] = [ 1.0, Vd1[i], 0.0, 0.0, 0.0,
-       (Tau[i] .* X[i]) ./ (2.0 * dd.dPdDe[i]) ]
-    R[i,:,5] = [ 0.0, 0.0, 0.0, 1.0, Vu3[i], 0.0 ]
-    R[i,:,6] = [ 1.0, Vd1[i] + Cs[i] .* sqrt.( Gmdd11 ), Vd2[i],
-        Vd3[i], H[i] + Cs[i] .* sqrt.( Gmdd11 ) .* Vu1[i], Y[i] ]
+        
+        R[i,:,1] = [ 1.0, Vd1[i] .- Cs[i] .* sqrt.( Gmdd11[i] ), Vd2[i], 
+            Vd3[i], H[i] - Cs[i] .* sqrt.( Gmdd11[i] ) .* Vu1[i], Y[i] ]
+        R[i,:,2] = [ 0.0, 0.0, 1.0, 0.0, Vu2[i], 0.0 ]
+        R[i,:,3] = [ 1.0, Vd1[i], 0.0, 0.0, B[i], 0.0 ]
+        R[i,:,4] = [ 1.0, Vd1[i], 0.0, 0.0, 0.0,
+            (Tau[i] .* X[i]) ./ (2.0 * dd.dPdDe[i]) ]
+        R[i,:,5] = [ 0.0, 0.0, 0.0, 1.0, Vu3[i], 0.0 ]
+        R[i,:,6] = [ 1.0, Vd1[i] + Cs[i] .* sqrt.( Gmdd11[i] ), Vd2[i],
+            Vd3[i], H[i] + Cs[i] .* sqrt.( Gmdd11[i] ) .* Vu1[i], Y[i] ]
 
     end
 
@@ -302,7 +286,7 @@ end
 function Compute_R1( D::Float64, E::Float64, Ne::Float64, 
     Vu1::Float64, Vu2::Float64, Vu3::Float64, 
     Y::Float64, Em::Float64, Cs::Float64,
-    Gmdd11::Float64, Gmdd22::Float64, Gmdd33::Float64 )
+    Gmdd11::Float64, Gmdd22::Float64, Gmdd33::Float64; Units_Option::Bool=true )
     """
     Compute the matrix of right eigenvectors from Barker et al.
 
@@ -322,15 +306,27 @@ function Compute_R1( D::Float64, E::Float64, Ne::Float64,
     Gmdd11::Float64 - Diagonal components of metric
     Gmdd22::Float64 - Diagonal components of metric
     Gmdd33::Float64 - Diagonal components of metric
+    Units_Option::Bool (default: true) - if true, inputs are given in physical units
     """
 
     R::Array{Float64,2} = zeros(6,6)
 
-    dd::DataFrame = ComputeDerivatives_pressure( D, E, Ne, Gmdd11, Gmdd22, Gmdd33 );
+    if ( Units_Option == false )
+        D *= (7.4247138240457958E-031 / (1.0e-2)^3.0 )
+        E *= (8.2611082525066313e-52 / (1.0e-2)^3.0 )
+        Ne /=  (1.0e-2)^3.0
+        Vu1 *= (1.0e-2 / 299792458.0)
+        Vu2 *= (1.0e-2 / 299792458.0)
+        Vu3 *= (1.0e-2 / 299792458.0)
+        Cs *= (1.0e-2 / 299792458.0)
+        Em *= (8.2611082525066313e-52 / 7.4247138240457958E-031)
+    end
 
-    Vd1::Float64 = Gmdd11 * Vu1
-    Vd2::Float64 = Gmdd22 * Vu2
-    Vd3::Float64 = Gmdd33 * Vu3
+    dd::DataFrame = ComputeDerivatives_pressure( D, E, Ne, Gmdd11, Gmdd22, Gmdd33, Units_Option=Units_Option )
+
+    Vd1::Float64 = Gmdd11 .* Vu1
+    Vd2::Float64 = Gmdd22 .* Vu2
+    Vd3::Float64 = Gmdd33 .* Vu3
 
     Vsq::Float64 = Vu1 * Vd1 + Vu2 * Vd2 + Vu3 * Vd3
 
@@ -343,8 +339,7 @@ function Compute_R1( D::Float64, E::Float64, Ne::Float64,
     K::Float64 = ( ( - ( Y ./ Tau ) .* dd.dPdDe[1] + dd.dPdE[1] .* ( 
           0.5 * Vsq + Em ) + dd.dPdTau[1] .* Tau ) ./ ( dd.dPdE[1] ) )
     H::Float64 = ( Cs.^2 ./ ( dd.dPdE[1] .* Tau ) ) + K
-    println(H * ( u.Erg / u.G )," ", K * ( u.Erg / u.G )," ", ( Cs.^2 ./ ( dd.dPdE[1] .* Tau ) ) * ( u.Erg / u.G ), " ", dd.dPdDe * ( u.Erg / u.G ), " ",
-        dd.dPdE * (u.G / u.Cm^3)," ", Em * ( u.Erg / u.G ) , " ",Tau /(u.G / u.Cm^3) )
+
     # TODO: Replace H with Tau(E+P)
     # TODO: Try analytic sound speed?
 
@@ -361,10 +356,11 @@ function Compute_R1( D::Float64, E::Float64, Ne::Float64,
     return R
 end
 
-function Compute_invR1( D::Float64, E::Float64, Ne::Float64, 
-    Vu1::Float64, Vu2::Float64, Vu3::Float64, 
-    Y::Float64, Em::Float64, Cs::Float64,
-    Gmdd11::Float64, Gmdd22::Float64, Gmdd33::Float64 )
+function Compute_invR1( D::Array{Float64,1}, E::Array{Float64,1}, Ne::Array{Float64,1}, 
+    Vu1::Array{Float64,1}, Vu2::Array{Float64,1}, Vu3::Array{Float64,1}, 
+    Y::Array{Float64,1}, Em::Array{Float64,1}, Cs::Array{Float64,1},
+    Gmdd11::Array{Float64,1}, Gmdd22::Array{Float64,1}, Gmdd33::Array{Float64,1}; 
+    Units_Option::Bool=true )
     """
     Compute the inverse matrix of right eigenvectors 1 from Barker et al.
 
@@ -384,15 +380,155 @@ function Compute_invR1( D::Float64, E::Float64, Ne::Float64,
     Gmdd11::Float64 - Diagonal components of metric
     Gmdd22::Float64 - Diagonal components of metric
     Gmdd33::Float64 - Diagonal components of metric
+    Units_Option::Bool (default: true) - if true, inputs are given in physical units
+    """
+
+    invR::Array{Float64,3} = zeros( length(D), 6, 6 )
+
+    if ( Units_Option == false )
+        D *= (7.4247138240457958E-031 / (1.0e-2)^3.0 )
+        E *= (8.2611082525066313e-52 / (1.0e-2)^3.0 )
+        Ne /=  (1.0e-2)^3.0
+        Vu1 *= (1.0e-2 / 299792458.0)
+        Vu2 *= (1.0e-2 / 299792458.0)
+        Vu3 *= (1.0e-2 / 299792458.0)
+        Cs *= (1.0e-2 / 299792458.0)
+        Em *= (8.2611082525066313e-52 / 7.4247138240457958E-031)
+    end
+
+    dd::DataFrame = ComputeDerivatives_pressure( D, E, Ne, Gmdd11, Gmdd22, Gmdd33, Units_Option=Units_Option )
+
+    Vd1::Array{Float64,1} = Gmdd11 .* Vu1
+    Vd2::Array{Float64,1} = Gmdd22 .* Vu2
+    Vd3::Array{Float64,1} = Gmdd33 .* Vu3
+
+    Tau::Array{Float64,1} = 1.0 ./ D
+
+    Phi_u1::Array{Float64,1} = dd.dPdE .* Tau .* Vu1
+    Phi_u2::Array{Float64,1} = dd.dPdE .* Tau .* Vu2
+    Phi_u3::Array{Float64,1} = dd.dPdE .* Tau .* Vu3
+
+    Phi_d1::Array{Float64,1} = dd.dPdE .* Tau .* Vd1
+    Phi_d2::Array{Float64,1} = dd.dPdE .* Tau .* Vd2
+    Phi_d3::Array{Float64,1} = dd.dPdE .* Tau .* Vd3
+
+    Vsq::Array{Float64,1} = Vu1 .* Vd1 + Vu2 .* Vd2 + Vu3 .* Vd3
+
+    Delta::Array{Float64,1} = Vu1 .* Vd1 - Vu2 .* Vd2 - Vu3 .* Vd3
+    B::Array{Float64,1} = 0.5 .* ( Delta + 2.0 .* Em + 
+        (2.0 .* dd.dPdTau .* Tau) ./ dd.dPdE)
+    X::Array{Float64,1} = (dd.dPdE .* ( Delta + 2.0 * Em) + 2.0 * dd.dPdTau .* Tau )
+
+    K::Array{Float64,1} = ( ( - ( Y ./ Tau ) .* dd.dPdDe + dd.dPdE .* ( 
+          0.5 * Vsq + Em ) + dd.dPdTau .* Tau ) ./ ( dd.dPdE ) )
+    H::Array{Float64,1} = ( Cs.^2 ./ ( dd.dPdE .* Tau ) ) + K
+    Alpha::Array{Float64,1} = 2.0 * Y .* dd.dPdDe - X .* Tau
+    W = Tau .* ( dd.dPdE .* ( Vsq - 2.0 * Em )
+               - 2.0 .* dd.dPdTau .* Tau )
+    invCsSq = 1.0 ./ ( Cs.^2 )
+
+    # TODO: Replace H with Tau(E+P)
+    # TODO: Try analytic sound speed?
+
+    for i in 1:length(D)
+
+        invR[i,:,1] = invCsSq[i] .*
+            [ + 0.25 * (W[i] + 2.0 * Cs[i] .* sqrt.( Gmdd11[i] ) .* Vu1[i]), 
+            - 0.5 * Vd2[i] .* W[i],
+            + (2.0 * Cs[i].^2 * X[i] + Alpha[i] .* W[i] ./ Tau[i]) ./ (2.0 .* X[i]),
+            - (Y[i]) .* dd.dPdDe[i] .* W[i] / (X[i] .* Tau[i]),
+            - 0.5 * Vd3[i] .* W[i],
+            + 0.25 * (W[i] - 2.0 * Cs[i] .* sqrt.( Gmdd11[i] ) .* Vu1[i]) ]
+
+        invR[i,:,2] = invCsSq[i] .*
+            [ - 0.5 .* ( ( Cs[i] ./ sqrt.( Gmdd11[i] ) ) + Phi_u1[i] ),
+            + Phi_u1[i] .* Vd2[i],
+            - Phi_u1[i] .* Alpha[i] ./ (X[i] .* Tau[i]),
+            + 2.0 * Y[i] .* dd.dPdDe[i] .* Phi_u1[i] ./ (X[i] .* Tau[i]),
+            + Phi_u1[i] .* Vd3[i],
+            + 0.5 .* ( ( Cs[i] ./ sqrt.( Gmdd11[i] ) ) - Phi_u1[i] ) ]
+
+        invR[i,:,3] = invCsSq[i] .* 
+            [ - 0.5 * Phi_u2[i],
+            + Cs[i].^2 + Phi_u2[i] .* Vd2[i],
+            - Phi_u2[i] .* Alpha[i] ./ (X[i] .* Tau[i]),
+            + 2.0 .* Y[i] .* dd.dPdDe[i] .* Phi_u2[i] ./ (X[i] .* Tau[i]),
+            + Phi_u2[i] .* Vd3[i],
+            - 0.5 * Phi_u2[i] ]
+
+        invR[i,:,4] = invCsSq[i] .*
+            [ - 0.5 * Phi_u3[i],
+            + Phi_u3[i] .* Vd2[i],
+            - Phi_u3[i] .* Alpha[i] ./ (X[i] .* Tau[i]),
+            + 2.0 .* Y[i] .* dd.dPdDe[i] .* Phi_u3[i] ./ (X[i] .* Tau[i]),
+            + Cs[i].^2 + Phi_u3[i] .* Vd3[i],
+            - 0.5 * Phi_u3[i] ]
+
+        invR[i,:,5] = invCsSq[i] .*
+            [ + 0.5 * dd.dPdE[i] .* Tau[i],
+            - Phi_d2[i],
+            + dd.dPdE[i] .* Alpha[i]  ./ X[i],
+            - ((2.0 * Y[i] .* dd.dPdDe[i] .* dd.dPdE[i]) ./ X[i]),
+            - Phi_d3[i],
+            + 0.5 * dd.dPdE[i] .* Tau[i] ]
+
+        invR[i,:,6] = invCsSq[i] .*
+            [ + 0.5 * dd.dPdDe[i],
+            - Vd2[i] .* dd.dPdDe[i],
+            + (dd.dPdDe[i] .* (-2.0 * Cs[i].^2 + Alpha[i])) ./ (Tau[i] .* X[i]),
+            + 2.0 * dd.dPdDe[i] .* (Cs[i].^2 .- Y[i] .* dd.dPdDe[i]) ./ (Tau[i] .* X[i]),
+            - Vd3[i] .* dd.dPdDe[i],
+            + 0.5 * dd.dPdDe[i] ]
+
+    end
+
+    return invR
+end
+
+function Compute_invR1( D::Float64, E::Float64, Ne::Float64, 
+    Vu1::Float64, Vu2::Float64, Vu3::Float64, 
+    Y::Float64, Em::Float64, Cs::Float64,
+    Gmdd11::Float64, Gmdd22::Float64, Gmdd33::Float64; Units_Option::Bool=true )
+    """
+    Compute the inverse matrix of right eigenvectors 1 from Barker et al.
+
+    Note: we access derivatives as dd.dPdx[1] as they are returned as single element arrays.
+
+    Parameters:
+    -----------
+    D::Float64 - thornado density profile
+    E::Float64 - thornado conserved energy density profile
+    Ne::Float64 - thornado conserved electron fraction profile
+    Vu1::Float64 - Velocity profile
+    Vu2::Float64 - Velocity profile
+    Vu3::Float64 - Velocity profile
+    Y::Float64 - thornado electron fraction
+    Cs::Float64 - thornado sound speed
+    Em::Float64 - thornado speciic internal energy
+    Gmdd11::Float64 - Diagonal components of metric
+    Gmdd22::Float64 - Diagonal components of metric
+    Gmdd33::Float64 - Diagonal components of metric
+    Units_Option::Bool (default: true) - if true, inputs are given in physical units
     """
 
     invR::Array{Float64,2} = zeros(6,6)
 
-    dd::DataFrame = ComputeDerivatives_pressure( D, E, Ne, Gmdd11, Gmdd22, Gmdd33 );
+    if ( Units_Option == false )
+        D *= (7.4247138240457958E-031 / (1.0e-2)^3.0 )
+        E *= (8.2611082525066313e-52 / (1.0e-2)^3.0 )
+        Ne /=  (1.0e-2)^3.0
+        Vu1 *= (1.0e-2 / 299792458.0)
+        Vu2 *= (1.0e-2 / 299792458.0)
+        Vu3 *= (1.0e-2 / 299792458.0)
+        Cs *= (1.0e-2 / 299792458.0)
+        Em *= (8.2611082525066313e-52 / 7.4247138240457958E-031)
+    end
 
-    Vd1::Float64 = Gmdd11 * Vu1
-    Vd2::Float64 = Gmdd22 * Vu2
-    Vd3::Float64 = Gmdd33 * Vu3
+    dd::DataFrame = ComputeDerivatives_pressure( D, E, Ne, Gmdd11, Gmdd22, Gmdd33, Units_Option=Units_Option )
+
+    Vd1::Float64 = Gmdd11 .* Vu1
+    Vd2::Float64 = Gmdd22 .* Vu2
+    Vd3::Float64 = Gmdd33 .* Vu3
 
     Tau::Float64 = 1.0 ./ D
 
