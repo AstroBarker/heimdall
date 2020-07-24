@@ -33,6 +33,9 @@ function load_thornado_single( Dir::AbstractString, filenumber::AbstractString; 
     t   = fid["Time"][:][1]
     x1     = fid["/Spatial Grid/X1"][:]   
     uCF_D  = fid["/Fluid Fields/Conserved/Conserved Baryon Density"][:,1,1]
+    uCF_S1 = fid["/Fluid Fields/Conserved/Conserved Momentum Density (1)"][:,1,1]
+    uCF_S2 = fid["/Fluid Fields/Conserved/Conserved Momentum Density (2)"][:,1,1]
+    uCF_S3 = fid["/Fluid Fields/Conserved/Conserved Momentum Density (3)"][:,1,1]
     uPF_V1 = fid["/Fluid Fields/Primitive/Three-Velocity (1)"][:,1,1]
     uPF_V2 = fid["/Fluid Fields/Primitive/Three-Velocity (2)"][:,1,1]
     uPF_V3 = fid["/Fluid Fields/Primitive/Three-Velocity (3)"][:,1,1]
@@ -48,8 +51,9 @@ function load_thornado_single( Dir::AbstractString, filenumber::AbstractString; 
 
     println("Time: $t" )
 
-    DataFrame( x1=x1, uCF_D=uCF_D, uCF_E=uCF_E, uAF_T=uAF_T, uAF_Ye=uAF_Ye, uAF_P=uAF_P, uAF_Cs=uAF_Cs, uCF_Ne=uCF_Ne, 
-               uPF_V1=uPF_V1, uPF_V2=uPF_V2, uPF_V3=uPF_V3, uPF_Ev=uPF_Ev, uAF_Em=uAF_Em )
+    DataFrame( x1=x1, uCF_D=uCF_D, uCF_E=uCF_E, uCF_S1=uCF_S1, uCF_S2=uCF_S2, uCF_S3=uCF_S3,
+        uAF_T=uAF_T, uAF_Ye=uAF_Ye, uAF_P=uAF_P, uAF_Cs=uAF_Cs, uCF_Ne=uCF_Ne, 
+        uPF_V1=uPF_V1, uPF_V2=uPF_V2, uPF_V3=uPF_V3, uPF_Ev=uPF_Ev, uAF_Em=uAF_Em )
 end
 
 function cell_average(df::DataFrame, nNodes::Int)

@@ -21,11 +21,17 @@ DataFrames.jl - (https://juliadata.github.io/DataFrames.jl/stable/man/getting_st
 Implemented:
 ------------
 
-computeDerivatives_Pressure(D, E, Ne, Gmdd11, Gmdd22, Gmdd33) - 2 methods
+ComputeDerivatives_Pressure(D, E, Ne, Gmdd11, Gmdd22, Gmdd33) - 2 methods
     Compute derivatives of pressure from conserved variables D, E, Ne.
     Can accept all vectors D, E, Ne or all scalar D, E, Ne
 
-cs(D, P, Y, dPdE, dPdDe, dPdTau ) - 2 methods
+Compute_R1(D, E, Ne, Vu1, Vu2, Vu3, Ye, Em, Cs, Gmdd11, Gmdd22, Gmdd33) - 2 methods
+    Compute matrix of right eigenvectors. Single point or vector of points 
+
+Compute_invR1(D, E, Ne, Vu1, Vu2, Vu3, Ye, Em, Cs, Gmdd11, Gmdd22, Gmdd33) - 2 methods
+    Compute inverse matrix of right eigenvectors. Single point or vector of points 
+
+Compute_Cs(D, P, Y, dPdE, dPdDe, dPdTau ) - 2 methods
     Compute analytic form of sound speed from Barker et al. senior thesis.
     Accepts all vector quantities or all scalar quantities.
 
@@ -171,7 +177,7 @@ function ComputeDerivatives_pressure( D::Float64, E::Float64, Ne::Float64,
 end   
 
 function Compute_Cs( D::Array{Float64,1}, P::Array{Float64,1}, Y::Array{Float64,1}, 
-    dPdE::Array{Float64,1}, dPdDe::Array{Float64,1}, dPdTau::Array{Float64,1}; Units_Option::Bool=true )
+    dPdE::Array{Float64,1}, dPdDe::Array{Float64,1}, dPdTau::Array{Float64,1} )
     """
     Compute analytic sound speed using expression in Barker et al senior thesis.
     If passed with units, this will be in cm/s.
@@ -181,7 +187,6 @@ function Compute_Cs( D::Array{Float64,1}, P::Array{Float64,1}, Y::Array{Float64,
     D::Array{Float64, 1} - thornado density profile
     P::Array{Float64, 1} - thornado pressure profile
     Y::Array{Float64, 1} - thornado electron fraction profile
-    Units_Option::Bool (default: true) - if true, inputs are given in physical units
     """
 
     Tau::Array{Float64,1} = 1.0 ./ D
@@ -190,7 +195,7 @@ function Compute_Cs( D::Array{Float64,1}, P::Array{Float64,1}, Y::Array{Float64,
 end
 
 function Compute_Cs( D::Float64, P::Float64, Y::Float64, 
-    dPdE::Float64, dPdDe::Float64, dPdTau::Float64; Units_Option::Bool=true )
+    dPdE::Float64, dPdDe::Float64, dPdTau::Float64 )
     """
     Compute analytic sound speed using expression in Barker et al senior thesis.
     If passed with units, this will be in cm/s.
@@ -200,7 +205,6 @@ function Compute_Cs( D::Float64, P::Float64, Y::Float64,
     D::Float64 - thornado density profile
     P::Float64 - thornado pressure profile
     Y::Float64 - thornado electron fraction profile
-    Units_Option::Bool (default: true) - if true, inputs are given in physical units
     """
 
     Tau::Float64 = 1.0 / D
@@ -211,7 +215,7 @@ function Compute_R1( D::Array{Float64, 1}, E::Array{Float64, 1}, Ne::Array{Float
     Vu1::Array{Float64, 1}, Vu2::Array{Float64, 1}, Vu3::Array{Float64, 1}, 
     Y::Array{Float64,1}, Em::Array{Float64, 1}, Cs::Array{Float64,1},
     Gmdd11::Array{Float64,1}, Gmdd22::Array{Float64,1}, Gmdd33::Array{Float64,1}; 
-    Units_Option::Bool=true )
+    Units_Option::Bool=false )
     """
     Compute the matrix of right eigenvectors from Barker et al.
 
@@ -229,7 +233,7 @@ function Compute_R1( D::Array{Float64, 1}, E::Array{Float64, 1}, Ne::Array{Float
     Gmdd11::Array{Float64,1} - Diagonal components of metric
     Gmdd22::Array{Float64,1} - Diagonal components of metric
     Gmdd33::Array{Float64,1} - Diagonal components of metric
-    Units_Option::Bool (default: true) - if true, inputs are given in physical units
+    Units_Option::Bool (default: false) - if true, inputs are given in physical units
     """
 
     R::Array{Float64,3} = zeros( length(D), 6, 6 )
@@ -238,11 +242,16 @@ function Compute_R1( D::Array{Float64, 1}, E::Array{Float64, 1}, Ne::Array{Float
         D *= (7.4247138240457958E-031 / (1.0e-2)^3.0 )
         E *= (8.2611082525066313e-52 / (1.0e-2)^3.0 )
         Ne /=  (1.0e-2)^3.0
-        Vu1 *= (1.0e-2 / 299792458.0)
-        Vu2 *= (1.0e-2 / 299792458.0)
-        Vu3 *= (1.0e-2 / 299792458.0)
-        Cs *= (1.0e-2 / 299792458.0)
+        Vu1 *= (1.0e3 / 299792458.0)
+        Vu2 *= (1.0e3 / 299792458.0)
+        Vu3 *= (1.0e3 / 299792458.0)
+        Cs *= (1.0e3 / 299792458.0)
         Em *= (8.2611082525066313e-52 / 7.4247138240457958E-031)
+    else
+        Vu1 *= 1e5
+        Vu2 *= 1e5
+        Vu3 *= 1e5
+        Cs *= 1e5
     end
 
     dd::DataFrame = ComputeDerivatives_pressure( D, E, Ne, Gmdd11, Gmdd22, Gmdd33, Units_Option=Units_Option )
@@ -286,7 +295,7 @@ end
 function Compute_R1( D::Float64, E::Float64, Ne::Float64, 
     Vu1::Float64, Vu2::Float64, Vu3::Float64, 
     Y::Float64, Em::Float64, Cs::Float64,
-    Gmdd11::Float64, Gmdd22::Float64, Gmdd33::Float64; Units_Option::Bool=true )
+    Gmdd11::Float64, Gmdd22::Float64, Gmdd33::Float64; Units_Option::Bool=false )
     """
     Compute the matrix of right eigenvectors from Barker et al.
 
@@ -306,7 +315,7 @@ function Compute_R1( D::Float64, E::Float64, Ne::Float64,
     Gmdd11::Float64 - Diagonal components of metric
     Gmdd22::Float64 - Diagonal components of metric
     Gmdd33::Float64 - Diagonal components of metric
-    Units_Option::Bool (default: true) - if true, inputs are given in physical units
+    Units_Option::Bool (default: true) - if false, inputs are given in physical units
     """
 
     R::Array{Float64,2} = zeros(6,6)
@@ -315,11 +324,16 @@ function Compute_R1( D::Float64, E::Float64, Ne::Float64,
         D *= (7.4247138240457958E-031 / (1.0e-2)^3.0 )
         E *= (8.2611082525066313e-52 / (1.0e-2)^3.0 )
         Ne /=  (1.0e-2)^3.0
-        Vu1 *= (1.0e-2 / 299792458.0)
-        Vu2 *= (1.0e-2 / 299792458.0)
-        Vu3 *= (1.0e-2 / 299792458.0)
-        Cs *= (1.0e-2 / 299792458.0)
+        Vu1 *= (1.0e3 / 299792458.0)
+        Vu2 *= (1.0e3 / 299792458.0)
+        Vu3 *= (1.0e3 / 299792458.0)
+        Cs *= (1.0e3 / 299792458.0)
         Em *= (8.2611082525066313e-52 / 7.4247138240457958E-031)
+    else
+        Vu1 *= 1e5
+        Vu2 *= 1e5
+        Vu3 *= 1e5
+        Cs *= 1e5
     end
 
     dd::DataFrame = ComputeDerivatives_pressure( D, E, Ne, Gmdd11, Gmdd22, Gmdd33, Units_Option=Units_Option )
@@ -360,11 +374,9 @@ function Compute_invR1( D::Array{Float64,1}, E::Array{Float64,1}, Ne::Array{Floa
     Vu1::Array{Float64,1}, Vu2::Array{Float64,1}, Vu3::Array{Float64,1}, 
     Y::Array{Float64,1}, Em::Array{Float64,1}, Cs::Array{Float64,1},
     Gmdd11::Array{Float64,1}, Gmdd22::Array{Float64,1}, Gmdd33::Array{Float64,1}; 
-    Units_Option::Bool=true )
+    Units_Option::Bool=false )
     """
     Compute the inverse matrix of right eigenvectors 1 from Barker et al.
-
-    Note: we access derivatives as dd.dPdx[1] as they are returned as single element arrays.
 
     Parameters:
     -----------
@@ -380,7 +392,7 @@ function Compute_invR1( D::Array{Float64,1}, E::Array{Float64,1}, Ne::Array{Floa
     Gmdd11::Float64 - Diagonal components of metric
     Gmdd22::Float64 - Diagonal components of metric
     Gmdd33::Float64 - Diagonal components of metric
-    Units_Option::Bool (default: true) - if true, inputs are given in physical units
+    Units_Option::Bool (default: false) - if true, inputs are given in physical units
     """
 
     invR::Array{Float64,3} = zeros( length(D), 6, 6 )
@@ -389,11 +401,16 @@ function Compute_invR1( D::Array{Float64,1}, E::Array{Float64,1}, Ne::Array{Floa
         D *= (7.4247138240457958E-031 / (1.0e-2)^3.0 )
         E *= (8.2611082525066313e-52 / (1.0e-2)^3.0 )
         Ne /=  (1.0e-2)^3.0
-        Vu1 *= (1.0e-2 / 299792458.0)
-        Vu2 *= (1.0e-2 / 299792458.0)
-        Vu3 *= (1.0e-2 / 299792458.0)
-        Cs *= (1.0e-2 / 299792458.0)
+        Vu1 *= (1.0e3 / 299792458.0)
+        Vu2 *= (1.0e3 / 299792458.0)
+        Vu3 *= (1.0e3 / 299792458.0)
+        Cs *= (1.0e3 / 299792458.0)
         Em *= (8.2611082525066313e-52 / 7.4247138240457958E-031)
+    else
+        Vu1 *= 1e5
+        Vu2 *= 1e5
+        Vu3 *= 1e5
+        Cs *= 1e5
     end
 
     dd::DataFrame = ComputeDerivatives_pressure( D, E, Ne, Gmdd11, Gmdd22, Gmdd33, Units_Option=Units_Option )
@@ -508,7 +525,7 @@ function Compute_invR1( D::Float64, E::Float64, Ne::Float64,
     Gmdd11::Float64 - Diagonal components of metric
     Gmdd22::Float64 - Diagonal components of metric
     Gmdd33::Float64 - Diagonal components of metric
-    Units_Option::Bool (default: true) - if true, inputs are given in physical units
+    Units_Option::Bool (default: false) - if true, inputs are given in physical units
     """
 
     invR::Array{Float64,2} = zeros(6,6)
@@ -517,11 +534,16 @@ function Compute_invR1( D::Float64, E::Float64, Ne::Float64,
         D *= (7.4247138240457958E-031 / (1.0e-2)^3.0 )
         E *= (8.2611082525066313e-52 / (1.0e-2)^3.0 )
         Ne /=  (1.0e-2)^3.0
-        Vu1 *= (1.0e-2 / 299792458.0)
-        Vu2 *= (1.0e-2 / 299792458.0)
-        Vu3 *= (1.0e-2 / 299792458.0)
-        Cs *= (1.0e-2 / 299792458.0)
+        Vu1 *= (1.0e3 / 299792458.0)
+        Vu2 *= (1.0e3 / 299792458.0)
+        Vu3 *= (1.0e3 / 299792458.0)
+        Cs *= (1.0e3 / 299792458.0)
         Em *= (8.2611082525066313e-52 / 7.4247138240457958E-031)
+    else
+        Vu1 *= 1e5
+        Vu2 *= 1e5
+        Vu3 *= 1e5
+        Cs *= 1e5
     end
 
     dd::DataFrame = ComputeDerivatives_pressure( D, E, Ne, Gmdd11, Gmdd22, Gmdd33, Units_Option=Units_Option )
@@ -607,6 +629,47 @@ function Compute_invR1( D::Float64, E::Float64, Ne::Float64,
           + 0.5 * dd.dPdDe[1] ]
 
     return invR
+end
+
+function Compute_Characteristics( U::Array{Float64,2}, 
+    Vu1::Array{Float64,1}, Vu2::Array{Float64,1}, Vu3::Array{Float64,1}, 
+    Y::Array{Float64,1}, Em::Array{Float64,1}, Cs::Array{Float64,1},
+    Gmdd11::Array{Float64,1}, Gmdd22::Array{Float64,1}, Gmdd33::Array{Float64,1}; 
+    Units_Option::Bool=false)
+    """
+    Compute the characteristic quantities w = invR U.
+    w[i,:] will access the i-th characteristic field for i in 1:length( domain )
+
+    Parameters:
+    -----------
+    U::Array{Float64,2} - array holding conserved quantities:
+        U = [uCF_D, uCF_S1, uCF_S2, uCF_S3, uCF_E, uCF_Ne]
+        Vu1::Float64 - Velocity profile
+        Vu2::Float64 - Velocity profile
+        Vu3::Float64 - Velocity profile
+        Y::Float64 - thornado electron fraction
+        Cs::Float64 - thornado sound speed
+        Em::Float64 - thornado speciic internal energy
+        Gmdd11::Float64 - Diagonal components of metric
+        Gmdd22::Float64 - Diagonal components of metric
+        Gmdd33::Float64 - Diagonal components of metric
+        Units_Option::Bool (default: false) - if true, inputs are given in physical units
+    """
+
+    nx = length( U[:,1] )
+
+    invR::Array{Float64,3} = Compute_invR1( U[:,1], U[:,5], U[:,6], Vu1, Vu2, Vu3, Y, Em, Cs, 
+        Gmdd11, Gmdd22, Gmdd33, Units_Option=Units_Option )
+
+    w::Array{Float64,2}= hcat( zeros(nx), zeros(nx), zeros(nx),
+        zeros(nx), zeros(nx), zeros(nx) )
+
+    for i in 1:nx
+        w[i,:] = invR[i,:,:] * U[i,:]
+    end
+
+    return w
+
 end
 
 end
