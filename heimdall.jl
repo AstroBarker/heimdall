@@ -31,6 +31,9 @@ Compute_R1(D, E, Ne, Vu1, Vu2, Vu3, Ye, Em, Cs, Gmdd11, Gmdd22, Gmdd33) - 2 meth
 Compute_invR1(D, E, Ne, Vu1, Vu2, Vu3, Ye, Em, Cs, Gmdd11, Gmdd22, Gmdd33) - 2 methods
     Compute inverse matrix of right eigenvectors. Single point or vector of points 
 
+RemoveUnits_U(U, u) - 2 methods
+    Convert vector of conserved quantities to code units
+
 Compute_Cs(D, P, Y, dPdE, dPdDe, dPdTau ) - 2 methods
     Compute analytic form of sound speed from Barker et al. senior thesis.
     Accepts all vector quantities or all scalar quantities.
@@ -59,23 +62,130 @@ struct Units
     Cm : Centimeter
     Km : Kilometer
     S : Second
+    Amu : AtomicMassUnit
     """
-    Erg        ::Float64
-    G       ::Float64
-    Cm ::Float64
-    Km  ::Float64
-    S     ::Float64
+    Erg :: Float64
+    G   :: Float64
+    Cm  :: Float64
+    Km  :: Float64
+    S   :: Float64
+    Amu :: Float64
 end
 
 u = Units(8.2611082525066313e-052,
     7.4247138240457958E-031,
     1.0e-2,
     1000.0,
-    299792458.0)
+    299792458.0, 
+    1.2329024849255997e-54)
 
 export u
 
 # ================================ Module Functions ================================
+
+function AddUnits_U( U::Array{Float64,2} )
+    """
+    Convert code units to physical units for vector of conserved quantities U.
+
+    Parameters:
+    -----------
+    U::Array{Float64,2} - array holding conserved quantities:
+        U = [D, S1, S2, S3, E, D * Ye]
+    """
+
+    nx = length(U[:,1])
+
+    U_Units::Array{Float64,1} = 
+        [ 7.424713824045795e-25, 
+        2.4766179488230473e-35, 
+        2.4766179488230473e-35, 
+        2.4766179488230473e-35, 
+        8.261108252506631e-48,
+        7.424713824045795e-25 ]
+
+    new_U::Array{Float64,2} = zero( U )
+
+    for i in 1:nx
+        new_U[i,:] = U[i,:] ./ U_Units
+    end
+
+    return new_U
+
+end
+
+function AddUnits_U( U::Float64 )
+    """
+    Convert code units to physical units for vector of conserved quantities U.
+
+    Parameters:
+    -----------
+    U::Float64 - array holding conserved quantities:
+    U = [D, S1, S2, S3, E, D * Ye]
+    """
+
+    U_Units::Array{Float64,1} = 
+        [ 7.424713824045795e-25, 
+        2.4766179488230473e-35, 
+        2.4766179488230473e-35, 
+        2.4766179488230473e-35, 
+        8.261108252506631e-48,
+        7.424713824045795e-25 ]
+
+    return U ./ U_Units
+
+end
+
+function RemoveUnits_U( U::Array{Float64,2} )
+    """
+    Convert physical units to code units for vector of conserved quantities U.
+
+    Parameters:
+    -----------
+    U::Array{Float64,2} - array holding conserved quantities:
+        U = [D, S1, S2, S3, E, D * Ye]
+    """
+
+    nx = length(U[:,1])
+
+    U_Units::Array{Float64,1} = 
+        [ 7.424713824045795e-25, 
+        2.4766179488230473e-35, 
+        2.4766179488230473e-35, 
+        2.4766179488230473e-35, 
+        8.261108252506631e-48,
+        7.424713824045795e-25 ]
+
+    new_U::Array{Float64,2} = zero( U )
+
+    for i in 1:nx
+        new_U[i,:] = U[i,:] .* U_Units
+    end
+
+    return new_U
+
+end
+
+function RemoveUnits_U( U::Float64 )
+    """
+    Convert physical units to code units for vector of conserved quantities U.
+
+    Parameters:
+    -----------
+    U::Float64 - array holding conserved quantities:
+    U = [D, S1, S2, S3, E, D * Ye]
+    """
+
+    U_Units::Array{Float64,1} = 
+        [ 7.424713824045795e-25, 
+        2.4766179488230473e-35, 
+        2.4766179488230473e-35, 
+        2.4766179488230473e-35, 
+        8.261108252506631e-48,
+        7.424713824045795e-25 ]
+
+    return U .* U_Units
+
+end
 
 function ComputeDerivatives_pressure( D::Array{Float64, 1}, E::Array{Float64, 1}, Ne::Array{Float64,1}, 
     Gmdd11::Array{Float64, 1}, Gmdd22::Array{Float64, 1}, Gmdd33::Array{Float64, 1}; Units_Option::Bool=true )
@@ -380,23 +490,23 @@ function Compute_invR1( D::Array{Float64,1}, E::Array{Float64,1}, Ne::Array{Floa
 
     Parameters:
     -----------
-    D::Float64 - thornado density profile
-    E::Float64 - thornado conserved energy density profile
-    Ne::Float64 - thornado conserved electron fraction profile
-    Vu1::Float64 - Velocity profile
-    Vu2::Float64 - Velocity profile
-    Vu3::Float64 - Velocity profile
-    Y::Float64 - thornado electron fraction
-    Cs::Float64 - thornado sound speed
-    Em::Float64 - thornado speciic internal energy
-    Gmdd11::Float64 - Diagonal components of metric
-    Gmdd22::Float64 - Diagonal components of metric
-    Gmdd33::Float64 - Diagonal components of metric
+    D::Array{Float64,1} - thornado density profile
+    E::Array{Float64,1} - thornado conserved energy density profile
+    Ne::Array{Float64,1} - thornado conserved electron fraction profile
+    Vu1::Array{Float64,1} - Velocity profile
+    Vu2::Array{Float64,1} - Velocity profile
+    Vu3::Array{Float64,1} - Velocity profile
+    Y::Array{Float64,1} - thornado electron fraction
+    Cs::Array{Float64,1} - thornado sound speed
+    Em::Array{Float64,1} - thornado speciic internal energy
+    Gmdd11::Array{Float64,1} - Diagonal components of metric
+    Gmdd22::Array{Float64,1} - Diagonal components of metric
+    Gmdd33::Array{Float64,1} - Diagonal components of metric
     Units_Option::Bool (default: false) - if true, inputs are given in physical units
     """
 
     invR::Array{Float64,3} = zeros( length(D), 6, 6 )
-
+    
     if ( Units_Option == false )
         D *= (7.4247138240457958E-031 / (1.0e-2)^3.0 )
         E *= (8.2611082525066313e-52 / (1.0e-2)^3.0 )
@@ -631,45 +741,103 @@ function Compute_invR1( D::Float64, E::Float64, Ne::Float64,
     return invR
 end
 
-function Compute_Characteristics( U::Array{Float64,2}, 
+function Compute_Characteristics( U::Array{Float64,2}, Ne::Array{Float64,1},
     Vu1::Array{Float64,1}, Vu2::Array{Float64,1}, Vu3::Array{Float64,1}, 
     Y::Array{Float64,1}, Em::Array{Float64,1}, Cs::Array{Float64,1},
     Gmdd11::Array{Float64,1}, Gmdd22::Array{Float64,1}, Gmdd33::Array{Float64,1}; 
     Units_Option::Bool=false)
     """
     Compute the characteristic quantities w = invR U.
-    w[i,:] will access the i-th characteristic field for i in 1:length( domain )
+    w[i,:] will access the i-th characteristic field for i in 1:length( domain ).
+    Calculations done in code units. If Units_Option = true, w is converted to physical units 
+    at the end.
 
     Parameters:
     -----------
     U::Array{Float64,2} - array holding conserved quantities:
-        U = [uCF_D, uCF_S1, uCF_S2, uCF_S3, uCF_E, uCF_Ne]
-        Vu1::Float64 - Velocity profile
-        Vu2::Float64 - Velocity profile
-        Vu3::Float64 - Velocity profile
-        Y::Float64 - thornado electron fraction
-        Cs::Float64 - thornado sound speed
-        Em::Float64 - thornado speciic internal energy
-        Gmdd11::Float64 - Diagonal components of metric
-        Gmdd22::Float64 - Diagonal components of metric
-        Gmdd33::Float64 - Diagonal components of metric
-        Units_Option::Bool (default: false) - if true, inputs are given in physical units
+        U = [uCF_D, uCF_S1, uCF_S2, uCF_S3, uCF_E, uCF_D * uAF_Ye]
+    Ne::Array{Float64,1} - Conserved electron density
+    Vu1::Array{Float64,1} - Velocity profile
+    Vu2::Array{Float64,1} - Velocity profile
+    Vu3::Array{Float64,1} - Velocity profile
+    Y::Array{Float64,1} - thornado electron fraction
+    Cs::Array{Float64,1} - thornado sound speed
+    Em::Array{Float64,1} - thornado speciic internal energy
+    Gmdd11::Array{Float64,1} - Diagonal components of metric
+    Gmdd22::Array{Float64,1} - Diagonal components of metric
+    Gmdd33::Array{Float64,1} - Diagonal components of metric
+    Units_Option::Bool (default: false) - if true, inputs are given in physical units
     """
 
     nx = length( U[:,1] )
 
-    invR::Array{Float64,3} = Compute_invR1( U[:,1], U[:,5], U[:,6], Vu1, Vu2, Vu3, Y, Em, Cs, 
-        Gmdd11, Gmdd22, Gmdd33, Units_Option=Units_Option )
+    invR::Array{Float64,3} = Compute_invR1( U[:,1], U[:,5], Ne, Vu1, Vu2, Vu3, Y, Em, Cs, 
+        Gmdd11, Gmdd22, Gmdd33, Units_Option=false )
 
-    w::Array{Float64,2}= hcat( zeros(nx), zeros(nx), zeros(nx),
-        zeros(nx), zeros(nx), zeros(nx) )
+    new_U::Array{Float64,2} = RemoveUnits_U( U )
+
+    w::Array{Float64,2} = zero( U )
 
     for i in 1:nx
-        w[i,:] = invR[i,:,:] * U[i,:]
+        w[i,:] = invR[i,:,:] * new_U[i,:]
+    end
+
+    if Units_Option
+        w = AddUnits_U( w )
     end
 
     return w
 
 end
 
+function Compute_Characteristics( U::Array{Float64,2}, 
+    Vu1::Float64, Vu2::Float64, Vu3::Float64, 
+    Y::Float64, Em::Float64, Cs::Float64,
+    Gmdd11::Float64, Gmdd22::Float64, Gmdd33::Float64; 
+    Units_Option::Bool=false)
+    """
+    Compute the characteristic quantities w = invR U.
+    w[i,:] will access the i-th characteristic field for i in 1:length( domain ).
+    Calculations done in code units. If Units_Option = true, w is converted to physical units 
+    at the end.
+
+    Parameters:
+    -----------
+    U::Array{Float64,2} - array holding conserved quantities:
+        U = [uCF_D, uCF_S1, uCF_S2, uCF_S3, uCF_E, uCF_D * uAF_Ye]
+    Ne::Float64 - Conserved electron density
+    Vu1::Float64 - Velocity profile
+    Vu2::Float64 - Velocity profile
+    Vu3::Float64 - Velocity profile
+    Y::Float64 - thornado electron fraction
+    Cs::Float64 - thornado sound speed
+    Em::Float64 - thornado speciic internal energy
+    Gmdd11::Float64 - Diagonal components of metric
+    Gmdd22::Float64 - Diagonal components of metric
+    Gmdd33::Float64 - Diagonal components of metric
+    Units_Option::Bool (default: false) - if true, inputs are given in physical units
+    """
+
+    nx = length( U[:,1] )
+
+    invR::Array{Float64,3} = Compute_invR1( U[:,1], U[:,5], U[:,6]/1.2329024849255997e-54, Vu1, Vu2, Vu3, Y, Em, Cs, 
+        Gmdd11, Gmdd22, Gmdd33, Units_Option=false )
+
+    new_U::Array{Float64,1} = RemoveUnits_U( U )
+
+    w::Array{Float64,2} = zero( U )
+
+    for i in 1:nx
+        w[i,:] = invR[i,:,:] * new_U[i,:]
+    end
+
+    if Units_Option
+        w = AddUnits_U( w )
+    end
+
+    return w
+
+end
+
+# End module
 end

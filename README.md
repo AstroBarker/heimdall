@@ -1,5 +1,5 @@
 # heimdall
-Helpful EOS Investigative Multi-Dimensional thornAdo anaLysis tooL (HEIMDALL)
+Helpful Eos Investigative Multi-Dimensional thornAdo anaLysis tooL (HEIMDALL)
 
 Complementary equation of state (EoS) analysis code for [thornado](https://github.com/endeve/thornado) [1](https://iopscience.iop.org/article/10.1088/1742-6596/1225/1/012014)[2](https://trace.tennessee.edu/cgi/viewcontent.cgi?article=3333&context=utk_chanhonoproj). 
 
@@ -22,8 +22,7 @@ Assuming that _thornado_ and _weaklib_ are set up correctly, you should just be 
 
 # TODO:
 
-* Implement optional arguement to functions - "remove units"
- * May need a new "composite type" for holding data that is unit - aware?
- * Have to modify FORTRAN routines to accept unitless inputs
-
+* NMay need a new "composite type" for holding data that is unit - aware?
+* Need more sophisticated load system
+  * Wrap thornado-AMReX python loader with a function for Julia
 * Implement Multi-D stuff and things
