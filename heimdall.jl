@@ -21,7 +21,7 @@ DataFrames.jl - (https://juliadata.github.io/DataFrames.jl/stable/man/getting_st
 Implemented functions:
 ----------------------
 
-ComputeDerivatives_Pressure(D, E, Ne, Gmdd11, Gmdd22, Gmdd33) - 2 methods
+ComputeDerivatives_Pressure(D, E, Ne) - 2 methods
     Compute derivatives of pressure from conserved variables D, E, Ne.
     Can accept all vectors D, E, Ne or all scalar D, E, Ne
 
@@ -90,6 +90,7 @@ u = Units(8.2611082525066313e-052,
     299792458.0, 
     1.2329024849255997e-54)
 
+# Makes u available after importing Heimdall 
 export u
 
 # ================================ Module Functions ================================
@@ -213,13 +214,10 @@ Parameters:
 D::Array{Float64, 1} - thornado density profile
 E::Array{Float64, 1} - thornado conserved energy density profile
 Ne::Array{Float64,1} - thornado conserved electron fraction profile
-Gmdd11::Array{Float64, 1} - Diagonal components of metric
-Gmdd22::Array{Float64, 1} - Diagonal components of metric
-Gmdd33::Array{Float64, 1} - Diagonal components of metric
 Units_Option::Bool (default: true) - if true, inputs are given in physical units
 """
-function ComputeDerivatives_Pressure( D::Array{Float64, 1}, E::Array{Float64, 1}, Ne::Array{Float64,1}, 
-    Gmdd11::Array{Float64, 1}, Gmdd22::Array{Float64, 1}, Gmdd33::Array{Float64, 1}; Units_Option::Bool=true )
+function ComputeDerivatives_Pressure( D::Array{Float64, 1}, E::Array{Float64, 1}, Ne::Array{Float64,1};
+    Units_Option::Bool=true )
 
     # Initialize arrays to hold derivatives
     nx     :: Int64             = length( D )
@@ -238,10 +236,10 @@ function ComputeDerivatives_Pressure( D::Array{Float64, 1}, E::Array{Float64, 1}
     # =============================================================
     ccall( (:computederivatives_pressure_, "./EoS_jl.so"), Cvoid, 
     ( Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Int64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, 
-    Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Bool} ), 
-    D, E, Ne, nx, Gmdd11, Gmdd22, Gmdd33, dPdD, dPdT, dPdY, dPdE, dPdDe, dPdTau, Units_Option )
+    Ref{Float64}, Ref{Bool} ), 
+    D, E, Ne, nx, dPdD, dPdT, dPdY, dPdE, dPdDe, dPdTau, Units_Option )
 
-    df = DataFrame(dPdD=dPdD, dPdT=dPdT, dPdY=dPdY, dPdE=dPdE, dPdDe=dPdDe, dPdTau=dPdTau)
+    df::DataFrame = DataFrame(dPdD=dPdD, dPdT=dPdT, dPdY=dPdY, dPdE=dPdE, dPdDe=dPdDe, dPdTau=dPdTau)
 
     return df
 
@@ -255,19 +253,15 @@ constructs the rest of the thermodynamic variables consistently from them.
 Parameters:
 -----------
 
-D::Array{Float64, 1} - thornado density profile
-E::Array{Float64, 1} - thornado conserved energy density profile
-Ne::Array{Float64,1} - thornado conserved electron fraction profile
-Gmdd11::Float64 - Diagonal components of metric
-Gmdd22::Float64 - Diagonal components of metric
-Gmdd33::Float64 - Diagonal components of metric
+D::Float64 - thornado density profile
+E::Float64 - thornado conserved energy density profile
+Ne::Float64 - thornado conserved electron fraction profile
 Units_Option::Bool (default: true) - if true, inputs are given in physical units
 """
-function ComputeDerivatives_Pressure( D::Float64, E::Float64, Ne::Float64, 
-    Gmdd11::Float64, Gmdd22::Float64, Gmdd33::Float64; Units_Option::Bool=true )
+function ComputeDerivatives_Pressure( D::Float64, E::Float64, Ne::Float64; 
+    Units_Option::Bool=true )
 
     # Initialize arrays to hold derivatives
-    nx     :: Ref{Int64}     = 0;
     dPdD   :: Ref{Float64}   = 0.0;
     dPdT   :: Ref{Float64}   = 0.0;
     dPdY   :: Ref{Float64}   = 0.0;
@@ -281,17 +275,101 @@ function ComputeDerivatives_Pressure( D::Float64, E::Float64, Ne::Float64,
     # type, the next parameters are input types, followed 
     # by the arguements. 
     #
-    # SLightly different syntax from the vector version above.
+    # Slightly different syntax from the vector version above.
     # Probably due to my ignorance, but it's the only way I could 
     # get it to work.
     # =============================================================
     ccall( (:computederivatives_pressure_scalar_, "./EoS_jl.so"), Nothing, 
-    ( Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Int64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, 
-    Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Bool} ), 
-    D, E, Ne, nx, Gmdd11, Gmdd22, Gmdd33, dPdD, dPdT, dPdY, dPdE, dPdDe, dPdTau, Units_Option )
+    ( Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, 
+    Ref{Float64}, Ref{Bool} ), 
+    D, E, Ne, dPdD, dPdT, dPdY, dPdE, dPdDe, dPdTau, Units_Option )
     
-    df = DataFrame(dPdD=dPdD.x[1][1], dPdT=dPdT.x[1][1], dPdY=dPdY.x[1][1], 
+    df::DataFrame = DataFrame(dPdD=dPdD.x[1][1], dPdT=dPdT.x[1][1], dPdY=dPdY.x[1][1], 
                    dPdE=dPdE.x[1][1], dPdDe=dPdDe.x[1][1], dPdTau=dPdTau.x[1][1])
+
+    return df
+
+end   
+
+"""
+Call ComputeDerivatives_InternalEnergy() from EoS_jl.f90 to compute thermodynamic derivatives 
+of specific internal energy. This routine takes the conserved variables D, E, Ne as primary inputs and 
+constructs the rest of the thermodynamic variables consistently from them.
+
+Derivatives are loaded into a dataframe. Accessible as, e.g., df.dEdD
+
+Parameters:
+-----------
+
+D::Array{Float64, 1} - thornado density profile
+E::Array{Float64, 1} - thornado conserved energy density profile
+Ne::Array{Float64,1} - thornado conserved electron fraction profile
+Units_Option::Bool (default: true) - if true, inputs are given in physical units
+"""
+function ComputeDerivatives_SpecificInternalEnergy( D::Array{Float64, 1}, E::Array{Float64, 1}, Ne::Array{Float64,1};
+    Units_Option::Bool=true )
+
+    # Initialize arrays to hold derivatives
+    nx     :: Int64             = length( D )
+    dEdD   :: Array{Float64, 1} = zeros( nx );
+    dEdT   :: Array{Float64, 1} = zeros( nx );
+    dEdY   :: Array{Float64, 1} = zeros( nx );
+
+    # ===================================================================
+    # This calls the FORTRAN function :computederivatives_internalenergy_
+    # FORTRAN compilation mangles the name. Cvoid is the return 
+    # type, the next parameters are input types, followed 
+    # by the arguements. 
+    # ===================================================================
+    ccall( (:computederivatives_internalenergy_, "./EoS_jl.so"), Cvoid, 
+    ( Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Int64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Bool} ), 
+    D, E, Ne, nx, dEdD, dEdT, dEdY, Units_Option )
+
+    df::DataFrame = DataFrame(dEdD=dEdD, dEdT=dEdT, dEdY=dEdY)
+
+    return df
+
+end  
+
+"""
+Call ComputeDerivatives_InternalEnergy() from EoS_jl.f90 to compute thermodynamic derivatives 
+of specific internal energy. This routine takes the conserved variables D, E, Ne as primary inputs and 
+constructs the rest of the thermodynamic variables consistently from them.
+
+Derivatives are loaded into a dataframe. Accessible as, e.g., df.dEdD
+
+Parameters:
+-----------
+
+D::Float64 - thornado density profile
+E::Float64 - thornado conserved energy density profile
+Ne::Float64 - thornado conserved electron fraction profile
+Units_Option::Bool (default: true) - if true, inputs are given in physical units
+"""
+function ComputeDerivatives_SpecificInternalEnergy( D::Float64, E::Float64, Ne::Float64; 
+    Units_Option::Bool=true )
+
+    # Initialize arrays to hold derivatives
+    dEdD   :: Ref{Float64}   = 0.0;
+    dEdT   :: Ref{Float64}   = 0.0;
+    dEdY   :: Ref{Float64}   = 0.0;
+
+    # ===================================================================
+    # This calls the FORTRAN function :computederivatives_internalenergy_
+    # FORTRAN compilation mangles the name. Cvoid is the return 
+    # type, the next parameters are input types, followed 
+    # by the arguements. 
+    #
+    # Slightly different syntax from the vector version above.
+    # Probably due to my ignorance, but it's the only way I could 
+    # get it to work.
+    # ===================================================================
+    ccall( (:computederivatives_pressure_scalar_, "./EoS_jl.so"), Nothing, 
+    ( Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, 
+    Ref{Float64}, Ref{Bool} ), 
+    D, E, Ne, dEdD, dEdT, dEdY, Units_Option )
+    
+    df::DataFrame = DataFrame(dEdD=dedD.x[1][1], dEdT=dEdT.x[1][1], dEdY=dedY.x[1][1])
 
     return df
 
@@ -375,7 +453,7 @@ function Compute_R1( D::Array{Float64, 1}, E::Array{Float64, 1}, Ne::Array{Float
         Cs *= 1e5
     end
 
-    dd::DataFrame = ComputeDerivatives_Pressure( D, E, Ne, Gmdd11, Gmdd22, Gmdd33, Units_Option=Units_Option )
+    dd::DataFrame = ComputeDerivatives_Pressure( D, E, Ne, Units_Option=Units_Option )
 
     Vd1::Array{Float64,1} = Gmdd11 .* Vu1
     Vd2::Array{Float64,1} = Gmdd22 .* Vu2
@@ -457,7 +535,7 @@ function Compute_R1( D::Float64, E::Float64, Ne::Float64,
         Cs *= 1e5
     end
 
-    dd::DataFrame = ComputeDerivatives_Pressure( D, E, Ne, Gmdd11, Gmdd22, Gmdd33, Units_Option=Units_Option )
+    dd::DataFrame = ComputeDerivatives_Pressure( D, E, Ne, Units_Option=Units_Option )
 
     Vd1::Float64 = Gmdd11 .* Vu1
     Vd2::Float64 = Gmdd22 .* Vu2
@@ -534,7 +612,7 @@ function Compute_invR1( D::Array{Float64,1}, E::Array{Float64,1}, Ne::Array{Floa
         Cs *= 1e5
     end
 
-    dd::DataFrame = ComputeDerivatives_Pressure( D, E, Ne, Gmdd11, Gmdd22, Gmdd33, Units_Option=Units_Option )
+    dd::DataFrame = ComputeDerivatives_Pressure( D, E, Ne, Units_Option=Units_Option )
 
     Vd1::Array{Float64,1} = Gmdd11 .* Vu1
     Vd2::Array{Float64,1} = Gmdd22 .* Vu2
@@ -667,7 +745,7 @@ function Compute_invR1( D::Float64, E::Float64, Ne::Float64,
         Cs *= 1e5
     end
 
-    dd::DataFrame = ComputeDerivatives_Pressure( D, E, Ne, Gmdd11, Gmdd22, Gmdd33, Units_Option=Units_Option )
+    dd::DataFrame = ComputeDerivatives_Pressure( D, E, Ne, Units_Option=Units_Option )
 
     Vd1::Float64 = Gmdd11 .* Vu1
     Vd2::Float64 = Gmdd22 .* Vu2

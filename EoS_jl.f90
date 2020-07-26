@@ -1,11 +1,9 @@
 SUBROUTINE ComputeDerivatives_Pressure & 
-  ( D, E, Ne, nx, Gmdd11, Gmdd22, Gmdd33, dPdD, & 
+  ( D, E, Ne, nx, dPdD, & 
     dPdT, dPdY, dPdE, dPdDe, dPdTau, Units)
 
   USE KindModule, ONLY: &
     DP
-  USE Euler_UtilitiesModule_NonRelativistic, ONLY: &
-    ComputePrimitive_Euler_NonRelativistic
   USE EquationOfStateModule_TABLE, ONLY: &
     ComputeSpecificInternalEnergy_TABLE, &
     ComputeAuxiliary_Fluid_TABLE, &
@@ -13,24 +11,15 @@ SUBROUTINE ComputeDerivatives_Pressure &
   USE EquationOfStateModule_TABLE, only: &
     InitializeEquationOfState_TABLE, &
     FinalizeEquationOfState_TABLE
-  USE ProgramInitializationModule, ONLY: &
-    FinalizeProgram
   USE UnitsModule, ONLY: &
-    AtomicMassUnit, &
-    BoltzmannConstant, &
     Gram, &
     Centimeter, &
     Kelvin, &
-    Dyne, &
-    Erg, &
-    MeV, & 
-    Second, & 
-    Kilometer
+    Erg
   
   INTEGER,  INTENT(in)  :: nx
   REAL(DP), INTENT(in)  :: D(nx), E(nx), Ne(nx)
   REAL(DP) :: D2(nx), E2(nx), Ne2(nx) ! remove units
-  REAL(DP), INTENT(in) :: Gmdd11, Gmdd22, Gmdd33
   
   LOGICAL,  INTENT(in)  :: Units ! if True, incoming values are in physical units
 
@@ -91,13 +80,11 @@ SUBROUTINE ComputeDerivatives_Pressure &
 END SUBROUTINE ComputeDerivatives_Pressure
 
 SUBROUTINE ComputeDerivatives_Pressure_Scalar & 
-  ( D, E, Ne, nx, Gmdd11, Gmdd22, Gmdd33, dPdD, & 
+  ( D, E, Ne, dPdD, & 
     dPdT, dPdY, dPdE, dPdDe, dPdTau, Units)
 
   USE KindModule, ONLY: &
     DP
-  USE Euler_UtilitiesModule_NonRelativistic, ONLY: &
-    ComputePrimitive_Euler_NonRelativistic
   USE EquationOfStateModule_TABLE, ONLY: &
     ComputeSpecificInternalEnergy_TABLE, &
     ComputeAuxiliary_Fluid_TABLE, &
@@ -105,22 +92,14 @@ SUBROUTINE ComputeDerivatives_Pressure_Scalar &
   USE EquationOfStateModule_TABLE, only: &
     InitializeEquationOfState_TABLE, &
     FinalizeEquationOfState_TABLE
-  USE ProgramInitializationModule, ONLY: &
-    FinalizeProgram
   USE UnitsModule, ONLY: &
-    AtomicMassUnit, &
-    BoltzmannConstant, &
     Gram, &
     Centimeter, &
     Kelvin, &
-    Dyne, &
-    Erg, &
-    MeV
+    Erg
 
-  INTEGER,  INTENT(in)  :: nx
   REAL(DP), INTENT(in) :: D, E, Ne
   REAL(DP) :: D2, E2, Ne2 ! remove units
-  REAL(DP), INTENT(in) :: Gmdd11, Gmdd22, Gmdd33
 
   LOGICAL,  INTENT(in)  :: Units ! if True, incoming values are in physical units
 
@@ -179,3 +158,132 @@ SUBROUTINE ComputeDerivatives_Pressure_Scalar &
   CALL FinalizeEquationOfState_TABLE
 
 END SUBROUTINE ComputeDerivatives_Pressure_Scalar
+
+SUBROUTINE ComputeDerivatives_InternalEnergy & 
+  ( D, E, Ne, nx, dEdD, dEdT, dEdY, Units)
+
+  USE KindModule, ONLY: &
+    DP
+  USE EquationOfStateModule_TABLE, ONLY: &
+    ComputeSpecificInternalEnergy_TABLE, &
+    ComputeAuxiliary_Fluid_TABLE
+  USE EquationOfStateModule_TABLE, only: &
+    InitializeEquationOfState_TABLE, &
+    FinalizeEquationOfState_TABLE
+  USE UnitsModule, ONLY: &
+    Gram, &
+    Centimeter, &
+    Kelvin, &
+    Erg
+  
+  INTEGER,  INTENT(in)  :: nx
+  REAL(DP), INTENT(in)  :: D(nx), E(nx), Ne(nx)
+  REAL(DP) :: D2(nx), E2(nx), Ne2(nx) ! remove units
+  
+  LOGICAL,  INTENT(in)  :: Units ! if True, incoming values are in physical units
+
+  REAL(DP), DIMENSION(nx) :: P, Cs_table
+  REAL(DP), DIMENSION(nx) :: T, Y, Em, Gm, S
+
+  REAL(DP), DIMENSION(nx) :: dPdD, dPdT, dPdY
+  REAL(DP), DIMENSION(nx), INTENT(out) :: dEdD, dEdT, dEdY
+
+  CHARACTER(128) :: EosTableName 
+
+  EosTableName = 'wl-EOS-SFHo-25-50-100.h5'
+
+  ! ========================================================
+  
+  IF ( Units ) THEN
+    D2 = D * ( Gram / Centimeter**3 )
+    E2 = E * ( Erg / Centimeter**3 )
+    Ne2 = Ne * ( 1.0_DP / Centimeter**3 )
+  ELSE
+    D2 = D 
+    E2 = E
+    Ne2 = Ne 
+  END IF
+  
+  CALL InitializeEquationOfState_TABLE &
+    ( EquationOfStateTableName_Option &
+        = TRIM( EosTableName ) )
+
+  CALL ComputeAuxiliary_Fluid_TABLE &
+        ( D2, E2, Ne2, P, T, Y, S, Em, Gm, Cs_table )
+  
+  CALL ComputeSpecificInternalEnergy_TABLE &
+        ( D2, T, Y, Em, dEdD, dEdT, dEdY )
+
+  IF ( Units ) THEN
+    dEdD = dEdD / ( (Erg * Centimeter**3) / Gram**2 )
+    dEdT = dEdT / ( Erg / Gram / Kelvin )
+    dEdY = dEdY / ( Erg / Gram )
+  END IF
+
+  CALL FinalizeEquationOfState_TABLE
+
+END SUBROUTINE ComputeDerivatives_InternalEnergy
+
+SUBROUTINE ComputeDerivatives_InternalEnergy_Scalar & 
+  ( D, E, Ne, dEdD, dEdT, dEdY, Units)
+
+  USE KindModule, ONLY: &
+    DP
+  USE EquationOfStateModule_TABLE, ONLY: &
+    ComputeSpecificInternalEnergy_TABLE, &
+    ComputeAuxiliary_Fluid_TABLE
+  USE EquationOfStateModule_TABLE, only: &
+    InitializeEquationOfState_TABLE, &
+    FinalizeEquationOfState_TABLE
+  USE UnitsModule, ONLY: &
+    Gram, &
+    Centimeter, &
+    Kelvin, &
+    Erg
+  
+  REAL(DP), INTENT(in)  :: D, E, Ne
+  REAL(DP) :: D2, E2, Ne2 ! remove units
+  
+  LOGICAL,  INTENT(in)  :: Units ! if True, incoming values are in physical units
+
+  REAL(DP) :: P, Cs_table
+  REAL(DP) :: T, Y, Em, Gm, S
+
+  REAL(DP) :: dPdD, dPdT, dPdY
+  REAL(DP), INTENT(out) :: dEdD, dEdT, dEdY
+
+  CHARACTER(128) :: EosTableName 
+
+  EosTableName = 'wl-EOS-SFHo-25-50-100.h5'
+
+  ! ========================================================
+  
+  IF ( Units ) THEN
+    D2 = D * ( Gram / Centimeter**3 )
+    E2 = E * ( Erg / Centimeter**3 )
+    Ne2 = Ne * ( 1.0_DP / Centimeter**3 )
+  ELSE
+    D2 = D 
+    E2 = E
+    Ne2 = Ne 
+  END IF
+  
+  CALL InitializeEquationOfState_TABLE &
+    ( EquationOfStateTableName_Option &
+        = TRIM( EosTableName ) )
+
+  CALL ComputeAuxiliary_Fluid_TABLE &
+        ( D2, E2, Ne2, P, T, Y, S, Em, Gm, Cs_table )
+  
+  CALL ComputeSpecificInternalEnergy_TABLE &
+        ( D2, T, Y, Em, dEdD, dEdT, dEdY )
+
+  IF ( Units ) THEN
+    dEdD = dEdD / ( (Erg * Centimeter**3) / Gram**2 )
+    dEdT = dEdT / ( Erg / Gram / Kelvin )
+    dEdY = dEdY / ( Erg / Gram )
+  END IF
+
+  CALL FinalizeEquationOfState_TABLE
+
+END SUBROUTINE ComputeDerivatives_InternalEnergy_Scalar
