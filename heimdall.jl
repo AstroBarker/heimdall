@@ -53,7 +53,7 @@ TODO:
 ------
 
 Needs testing & work for general coordinates.
-Create wrapper for AMReX loading
+Create methods for 2D data.
 
 """
 module Heimdall
@@ -61,6 +61,7 @@ module Heimdall
 using DataFrames
 
 # ================================ Units Struct ================================
+
 """
 To switch to/from code units and physical units.
 Multiply physical units by corresponding units to move to code units. Divide to go back.

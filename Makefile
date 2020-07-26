@@ -15,9 +15,6 @@ include $(WEAKLIB_DIR)/Distributions/Build/Makefile_WeakLib_ObjectFiles
 
 all: EoS_jl
 
-clean:
-	rm -f *.o *.mod *.ld *.so
-
 EoS_jl: \
 	$(weaklib) \
 	$(thornado) \
@@ -27,6 +24,12 @@ EoS_jl: \
         $(thornado) \
         EoS_jl.o \
         $(LIBRARIES)
+
+clean:
+	rm -f *.o *.mod *.ld
+
+realclean:
+	rm -f *.o *.mod *.ld *.so
 
 # makes executable.
 # EoS_jl: \

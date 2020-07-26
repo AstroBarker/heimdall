@@ -36,9 +36,8 @@ dd = Heimdall.ComputeDerivatives_Pressure(data.uCF_D, data.uCF_E, data.uCF_Ne, o
 Coming Soon: A pre-compiled executable to compute derivatives and write to file for exporting.
 
 # TODO:
-
+* Use [PackageCompiler.jl](https://github.com/JuliaLang/PackageCompiler.jl) to create an executable version.
 * May need a new "composite type" for holding data that is unit - aware?
 * Add geometry fields to reader.
-* Need more sophisticated load system
-  * Wrap thornado-AMReX python loader with a function for Julia
+* Write methods for 2D data.
 * Implement Multi-D stuff and things

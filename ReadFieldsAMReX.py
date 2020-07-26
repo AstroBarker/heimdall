@@ -2,42 +2,44 @@
 
 import yt
 import numpy as np
-import subprocess
 from os import listdir
-from os import environ
 from os.path import isfile
-from sys import argv, exit
 
 """
 Python function for loading thornado-AMReX data.
 The output is such that a field may be accessed as Data[i]
+Also returns a set of integers to be used to access the data. i.e., Density = Data[iCF_D]
 
-Parameters:
------------
-DataDirectory: str
-    Directory containing simulation outputs
+Modified from code by Samuel J Dunham.
 
-Default usage, plots last plotfile in DataDirectory:
+Functions:
+----------
 
-  $ python3 PlotFieldsAMReX.py
-
-Alernate usage, plot specific file in DataDirectory:
-
-  $ python3 PlotFieldsAMReX.py thornado_00000010
+Load_AMReX( DataDirectory ) - load final output for AMReX run
 
 TODO:
-  - Add SymLogNorm scaling
+* modify to include fileNumber as parameter
+
 """
 
-def Load_AMReX( DataDirectory: str ):
+def Load_AMReX( DataDirectory: str, fileNumber: int ):
+    """
+    Python function for loading thornado-AMReX data.
+    The output is such that a field may be accessed as Data[i]
+    Also returns a set of integers to be used to access the data. i.e., Density = Data[iCF_D]
+
+    Parameters:
+    -----------
+    DataDirectory: str
+        Directory containing simulation outputs
+    fileNumber: int
+        integer for the filenumber to plot.
+        Currently acceps 0 and -1
+
+    """
 
     # https://yt-project.org/doc/faq/index.html#how-can-i-change-yt-s-log-level
     yt.funcs.mylog.setLevel(40) # Suppress yt warnings
-
-    # --- Get user's THORNADO_DIR directory ---
-
-    THORNADO_DIR = environ["THORNADO_DIR"]
-    # THORNADO_DIR = THORNADO_DIR[:-1].decode( "utf-8" ) + '/'
 
     #### ========== User Input ==========
 
@@ -54,31 +56,30 @@ def Load_AMReX( DataDirectory: str ):
     # Append "/" to DataDirectory, if not present
     if( not DataDirectory[-1] == '/' ): DataDirectory += '/'
 
-    if( len( argv ) == 1 ):
-        # Get last plotfile in directory
+    # Get last plotfile in directory
 
-        FileArray \
-        = np.sort( np.array( [ file for file in listdir( DataDirectory ) ] ) )
+    FileArray \
+    = np.sort( np.array( [ file for file in listdir( DataDirectory ) ] ) )
 
-        FileList = []
+    FileList = []
 
-        for iFile in range( FileArray.shape[0] ):
+    for iFile in range( FileArray.shape[0] ):
 
-            sFile = FileArray[iFile]
+        sFile = FileArray[iFile]
 
-            if( sFile[0:len(PlotFileBaseName)+1] == PlotFileBaseName + '_' \
-                and sFile[len(PlotFileBaseName)+1].isdigit() ):
-                FileList.append( sFile )
+        if( sFile[0:len(PlotFileBaseName)+1] == PlotFileBaseName + '_' \
+            and sFile[len(PlotFileBaseName)+1].isdigit() ):
+            FileList.append( sFile )
 
-        FileArray = np.array( FileList )
+    FileArray = np.array( FileList )
+
+    if fileNumber == -1:
         File      = FileArray[-1]
-
-    elif( len( argv ) == 2 ):
-        File = argv[1]
-
+    elif fileNumber == 0:
+        File      = FileArray[0]
     else:
-        print( 'Invalid number of optional parameters' )
-        exit( 'Exiting...' )
+        raise ValueError("Invalid choice for fileNumber. Choose either 0 or -1.")
+
 
     # Remove "/" at end of filename, if present
     if ( File[-1] == '/' ): File = File[:-1]
@@ -114,15 +115,12 @@ def Load_AMReX( DataDirectory: str ):
 
     # XXX.to_ndarray() strips yt array of units
 
-    DataUnit = ''
-
     # === Begin loading data ===
 
-    #nx = 
-    #ny = 
     numFields = 15 # UPDATE if you add/remove from Data !!! 
     temp = CoveringGrid['PF_D' ].to_ndarray()
 
+    # Setup Data array. 
     if nDims == 1:
         nx = len( temp[0] )
         ny = 1
@@ -257,8 +255,3 @@ def Load_AMReX( DataDirectory: str ):
 
     #     if( UsePhysicalUnits ):
     #         DataUnit = '1/s'
-
-test, iPF_D, iPF_V1, iPF_V2, iPF_V3, iPF_E, iCF_D, iCF_S1, iCF_S2, iCF_S3, \
-        iCF_E, iAF_P, iAF_Cs, iDF_Sh_X1, iDF_Sh_X2, iDF_Sh_X3 = \
-        Load_AMReX( "/Users/barker/ornl_ut/codes/thornado/SandBox/AMReX/temp", ProblemName = "implosion", CoordinateSystem = "cartesian", UsePhysicalUnits = True )
-print(test[0])
