@@ -16,7 +16,7 @@ Primarily we're interested in obtaining the thermodynamic derivatives concistent
 Prerequisties:
 --------------
 
-DataFrames.jl - (https://juliadata.github.io/DataFrames.jl/stable/man/getting_started/#Installation-1)
+None :-)
 
 Implemented functions:
 ----------------------
@@ -57,8 +57,6 @@ Create methods for 2D data.
 
 """
 module Heimdall
-
-using DataFrames
 
 # ================================ Units Struct ================================
 
@@ -204,9 +202,13 @@ Call ComputeDerivatives_Pressure() from EoS_jl.f90 to compute thermodynamic deri
 of pressure. This routine takes the conserved variables D, E, Ne as primary inputs and 
 constructs the rest of the thermodynamic variables consistently from them.
 
-Derivatives are loaded into a dataframe. Accessible as, e.g., df.dPdD
-
-TODO: Data structures may need thought for multi-D
+Derivatives loaded into array - dPdD = array[idD]
+idD = 1
+idT = 2
+idY = 3
+idE = 4
+idDe = 5
+idTau = 6
 
 Parameters:
 -----------
@@ -220,7 +222,7 @@ function ComputeDerivatives_Pressure( D::Array{Float64, 1}, E::Array{Float64, 1}
     Units_Option::Bool=true )
 
     # Initialize arrays to hold derivatives
-    nx     :: Int64             = length( D )
+    nx     :: Int32             = length( D )
     dPdD   :: Array{Float64, 1} = zeros( nx );
     dPdT   :: Array{Float64, 1} = zeros( nx );
     dPdY   :: Array{Float64, 1} = zeros( nx );
@@ -235,13 +237,11 @@ function ComputeDerivatives_Pressure( D::Array{Float64, 1}, E::Array{Float64, 1}
     # by the arguements. 
     # =============================================================
     ccall( (:computederivatives_pressure_, "./EoS_jl.so"), Cvoid, 
-    ( Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Int64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, 
-    Ref{Float64}, Ref{Bool} ), 
-    D, E, Ne, nx, dPdD, dPdT, dPdY, dPdE, dPdDe, dPdTau, Units_Option )
+    ( Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Int32}, Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, 
+    Ref{Float64}, Ref{Int32} ), 
+    D, E, Ne, nx, dPdD, dPdT, dPdY, dPdE, dPdDe, dPdTau, Units_Option )    
 
-    df::DataFrame = DataFrame(dPdD=dPdD, dPdT=dPdT, dPdY=dPdY, dPdE=dPdE, dPdDe=dPdDe, dPdTau=dPdTau)
-
-    return df
+    return hcat( dPdD, dPdT, dPdY, dPdE, dPdDe, dPdTau )
 
 end    
 
@@ -249,6 +249,14 @@ end
 Call ComputeDerivatives_Pressure() from EoS_jl.f90 to compute thermodynamic derivatives 
 of pressure. This routine takes the conserved variables D, E, Ne as primary inputs and 
 constructs the rest of the thermodynamic variables consistently from them.
+
+Derivatives loaded into array - dPdD = array[idD]
+idD = 1
+idT = 2
+idY = 3
+idE = 4
+idDe = 5
+idTau = 6
 
 Parameters:
 -----------
@@ -281,13 +289,10 @@ function ComputeDerivatives_Pressure( D::Float64, E::Float64, Ne::Float64;
     # =============================================================
     ccall( (:computederivatives_pressure_scalar_, "./EoS_jl.so"), Nothing, 
     ( Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, 
-    Ref{Float64}, Ref{Bool} ), 
+    Ref{Float64}, Ref{Int32} ), 
     D, E, Ne, dPdD, dPdT, dPdY, dPdE, dPdDe, dPdTau, Units_Option )
-    
-    df::DataFrame = DataFrame(dPdD=dPdD.x[1][1], dPdT=dPdT.x[1][1], dPdY=dPdY.x[1][1], 
-                   dPdE=dPdE.x[1][1], dPdDe=dPdDe.x[1][1], dPdTau=dPdTau.x[1][1])
 
-    return df
+    return hcat( dPdD, dPdT, dPdY, dPdE, dPdDe, dPdTau )
 
 end   
 
@@ -296,7 +301,10 @@ Call ComputeDerivatives_InternalEnergy() from EoS_jl.f90 to compute thermodynami
 of specific internal energy. This routine takes the conserved variables D, E, Ne as primary inputs and 
 constructs the rest of the thermodynamic variables consistently from them.
 
-Derivatives are loaded into a dataframe. Accessible as, e.g., df.dEdD
+Derivatives loaded into array - dEdD = array[idD]
+idD = 1
+idT = 2
+idY = 3
 
 Parameters:
 -----------
@@ -310,7 +318,7 @@ function ComputeDerivatives_SpecificInternalEnergy( D::Array{Float64, 1}, E::Arr
     Units_Option::Bool=true )
 
     # Initialize arrays to hold derivatives
-    nx     :: Int64             = length( D )
+    nx     :: Int32             = length( D )
     dEdD   :: Array{Float64, 1} = zeros( nx );
     dEdT   :: Array{Float64, 1} = zeros( nx );
     dEdY   :: Array{Float64, 1} = zeros( nx );
@@ -322,12 +330,10 @@ function ComputeDerivatives_SpecificInternalEnergy( D::Array{Float64, 1}, E::Arr
     # by the arguements. 
     # ===================================================================
     ccall( (:computederivatives_internalenergy_, "./EoS_jl.so"), Cvoid, 
-    ( Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Int64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Bool} ), 
+    ( Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Int32}, Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Int32} ), 
     D, E, Ne, nx, dEdD, dEdT, dEdY, Units_Option )
 
-    df::DataFrame = DataFrame(dEdD=dEdD, dEdT=dEdT, dEdY=dEdY)
-
-    return df
+    return hcat( dEdD, dEdT, dEdY )
 
 end  
 
@@ -336,7 +342,10 @@ Call ComputeDerivatives_InternalEnergy() from EoS_jl.f90 to compute thermodynami
 of specific internal energy. This routine takes the conserved variables D, E, Ne as primary inputs and 
 constructs the rest of the thermodynamic variables consistently from them.
 
-Derivatives are loaded into a dataframe. Accessible as, e.g., df.dEdD
+Derivatives loaded into array - dEdD = array[idD]
+idD = 1
+idT = 2
+idY = 3
 
 Parameters:
 -----------
@@ -365,12 +374,10 @@ function ComputeDerivatives_SpecificInternalEnergy( D::Float64, E::Float64, Ne::
     # get it to work.
     # ===================================================================
     ccall( (:computederivatives_internalenergy_scalar_, "./EoS_jl.so"), Nothing, 
-    ( Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Bool} ), 
+    ( Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Int32} ), 
     D, E, Ne, dEdD, dEdT, dEdY, Units_Option )
-    
-    df::DataFrame = DataFrame(dEdD=dedD.x[1][1], dEdT=dEdT.x[1][1], dEdY=dedY.x[1][1])
 
-    return df
+    return hcat( dEdD, dEdT, dEdY )
 
 end   
 
@@ -452,7 +459,7 @@ function Compute_R1( D::Array{Float64, 1}, E::Array{Float64, 1}, Ne::Array{Float
         Cs *= 1e5
     end
 
-    dd::DataFrame = ComputeDerivatives_Pressure( D, E, Ne, Units_Option=Units_Option )
+    dd::Array{Float64,2} = ComputeDerivatives_Pressure( D, E, Ne, Units_Option=Units_Option )
 
     Vd1::Array{Float64,1} = Gmdd11 .* Vu1
     Vd2::Array{Float64,1} = Gmdd22 .* Vu2
@@ -463,12 +470,12 @@ function Compute_R1( D::Array{Float64, 1}, E::Array{Float64, 1}, Ne::Array{Float
     Tau::Array{Float64,1} = 1.0 ./ D
     Delta::Array{Float64,1} = Vu1 .* Vd1 - Vu2 .* Vd2 - Vu3 .* Vd3
     B::Array{Float64,1} = 0.5 .* ( Delta + 2.0 .* Em + 
-        (2.0 .* dd.dPdTau .* Tau) ./ dd.dPdE)
-    X::Array{Float64,1} = (dd.dPdE .* ( Delta + 2.0 * Em) + 2.0 * dd.dPdTau .* Tau )
+        (2.0 .* dd[:,6] .* Tau) ./ dd[:,4])
+    X::Array{Float64,1} = (dd[:,4] .* ( Delta + 2.0 * Em) + 2.0 * dd[:,6] .* Tau )
 
-    K::Array{Float64,1} = ( ( - ( Y ./ Tau ) .* dd.dPdDe + dd.dPdE .* ( 
-          0.5 * Vsq + Em ) + dd.dPdTau .* Tau ) ./ ( dd.dPdE ) )
-    H::Array{Float64,1} = ( Cs.^2 ./ ( dd.dPdE .* Tau ) ) + K
+    K::Array{Float64,1} = ( ( - ( Y ./ Tau ) .* dd[5] + dd[:,4] .* ( 
+          0.5 * Vsq + Em ) + dd[:,6] .* Tau ) ./ ( dd[:,4] ) )
+    H::Array{Float64,1} = ( Cs.^2 ./ ( dd[:,4] .* Tau ) ) + K
     # TODO: Replace H with Tau(E+P)
     # TODO: Try analytic sound speed?
 
@@ -479,7 +486,7 @@ function Compute_R1( D::Array{Float64, 1}, E::Array{Float64, 1}, Ne::Array{Float
         R[i,:,2] = [ 0.0, 0.0, 1.0, 0.0, Vu2[i], 0.0 ]
         R[i,:,3] = [ 1.0, Vd1[i], 0.0, 0.0, B[i], 0.0 ]
         R[i,:,4] = [ 1.0, Vd1[i], 0.0, 0.0, 0.0,
-            (Tau[i] .* X[i]) ./ (2.0 * dd.dPdDe[i]) ]
+            (Tau[i] .* X[i]) ./ (2.0 * dd[:,5][i]) ]
         R[i,:,5] = [ 0.0, 0.0, 0.0, 1.0, Vu3[i], 0.0 ]
         R[i,:,6] = [ 1.0, Vd1[i] + Cs[i] .* sqrt.( Gmdd11[i] ), Vd2[i],
             Vd3[i], H[i] + Cs[i] .* sqrt.( Gmdd11[i] ) .* Vu1[i], Y[i] ]
@@ -493,7 +500,7 @@ end
 """
 Compute the matrix of right eigenvectors from Barker et al.
 
-Note: we access derivatives as dd.dPdx[1] as they are returned as single element arrays.
+Note: we access derivatives as dd[:,i][1] as they are returned as single element arrays.
 
 Parameters:
 -----------
@@ -534,7 +541,8 @@ function Compute_R1( D::Float64, E::Float64, Ne::Float64,
         Cs *= 1e5
     end
 
-    dd::DataFrame = ComputeDerivatives_Pressure( D, E, Ne, Units_Option=Units_Option )
+    dd::Array{Float64,2} = ComputeDerivatives_Pressure( D, E, Ne, Units_Option=Units_Option )
+    println(dd[:,1])
 
     Vd1::Float64 = Gmdd11 .* Vu1
     Vd2::Float64 = Gmdd22 .* Vu2
@@ -545,12 +553,12 @@ function Compute_R1( D::Float64, E::Float64, Ne::Float64,
     Tau::Float64 = 1.0 ./ D
     Delta::Float64 = Vu1 * Vd1 - Vu2 * Vd2 - Vu3 * Vd3
     B::Float64 = 0.5 .* ( Delta + 2.0 .* Em + 
-        (2.0 .* dd.dPdTau[1] * Tau) ./ dd.dPdE[1])
-    X::Float64 = (dd.dPdE[1] .* ( Delta + 2.0 * Em) + 2.0 * dd.dPdTau[1] .* Tau )
+        (2.0 .* dd[:,6][1] * Tau) ./ dd[:,4][1])
+    X::Float64 = (dd[:,4][1] .* ( Delta + 2.0 * Em) + 2.0 * dd[:,6][1] .* Tau )
 
-    K::Float64 = ( ( - ( Y ./ Tau ) .* dd.dPdDe[1] + dd.dPdE[1] .* ( 
-          0.5 * Vsq + Em ) + dd.dPdTau[1] .* Tau ) ./ ( dd.dPdE[1] ) )
-    H::Float64 = ( Cs.^2 ./ ( dd.dPdE[1] .* Tau ) ) + K
+    K::Float64 = ( ( - ( Y ./ Tau ) .* dd[:,5][1] + dd[:,4][1] .* ( 
+          0.5 * Vsq + Em ) + dd[:,6][1] .* Tau ) ./ ( dd[:,4][1] ) )
+    H::Float64 = ( Cs.^2 ./ ( dd[:,4][1] .* Tau ) ) + K
 
     # TODO: Replace H with Tau(E+P)
     # TODO: Try analytic sound speed?
@@ -560,7 +568,7 @@ function Compute_R1( D::Float64, E::Float64, Ne::Float64,
     R[:,2] = [ 0.0, 0.0, 1.0, 0.0, Vu2, 0.0 ]
     R[:,3] = [ 1.0, Vd1, 0.0, 0.0, B, 0.0 ]
     R[:,4] = [ 1.0, Vd1, 0.0, 0.0, 0.0,
-       (Tau .* X) ./ (2.0 * dd.dPdDe[1]) ]
+       (Tau .* X) ./ (2.0 * dd[:,5][1]) ]
     R[:,5] = [ 0.0, 0.0, 0.0, 1.0, Vu3, 0.0 ]
     R[:,6] = [ 1.0, Vd1 + Cs .* sqrt.( Gmdd11 ), Vd2,
         Vd3, H + Cs .* sqrt.( Gmdd11 ) .* Vu1, Y ]
@@ -611,7 +619,7 @@ function Compute_invR1( D::Array{Float64,1}, E::Array{Float64,1}, Ne::Array{Floa
         Cs *= 1e5
     end
 
-    dd::DataFrame = ComputeDerivatives_Pressure( D, E, Ne, Units_Option=Units_Option )
+    dd::Array{Float64,2} = ComputeDerivatives_Pressure( D, E, Ne, Units_Option=Units_Option )
 
     Vd1::Array{Float64,1} = Gmdd11 .* Vu1
     Vd2::Array{Float64,1} = Gmdd22 .* Vu2
@@ -619,27 +627,27 @@ function Compute_invR1( D::Array{Float64,1}, E::Array{Float64,1}, Ne::Array{Floa
 
     Tau::Array{Float64,1} = 1.0 ./ D
 
-    Phi_u1::Array{Float64,1} = dd.dPdE .* Tau .* Vu1
-    Phi_u2::Array{Float64,1} = dd.dPdE .* Tau .* Vu2
-    Phi_u3::Array{Float64,1} = dd.dPdE .* Tau .* Vu3
+    Phi_u1::Array{Float64,1} = dd[:,4] .* Tau .* Vu1
+    Phi_u2::Array{Float64,1} = dd[:,4] .* Tau .* Vu2
+    Phi_u3::Array{Float64,1} = dd[:,4] .* Tau .* Vu3
 
-    Phi_d1::Array{Float64,1} = dd.dPdE .* Tau .* Vd1
-    Phi_d2::Array{Float64,1} = dd.dPdE .* Tau .* Vd2
-    Phi_d3::Array{Float64,1} = dd.dPdE .* Tau .* Vd3
+    Phi_d1::Array{Float64,1} = dd[:,4] .* Tau .* Vd1
+    Phi_d2::Array{Float64,1} = dd[:,4] .* Tau .* Vd2
+    Phi_d3::Array{Float64,1} = dd[:,4] .* Tau .* Vd3
 
     Vsq::Array{Float64,1} = Vu1 .* Vd1 + Vu2 .* Vd2 + Vu3 .* Vd3
 
     Delta::Array{Float64,1} = Vu1 .* Vd1 - Vu2 .* Vd2 - Vu3 .* Vd3
     B::Array{Float64,1} = 0.5 .* ( Delta + 2.0 .* Em + 
-        (2.0 .* dd.dPdTau .* Tau) ./ dd.dPdE)
-    X::Array{Float64,1} = (dd.dPdE .* ( Delta + 2.0 * Em) + 2.0 * dd.dPdTau .* Tau )
+        (2.0 .* dd[:,6] .* Tau) ./ dd[:,4])
+    X::Array{Float64,1} = (dd[:,4] .* ( Delta + 2.0 * Em) + 2.0 * dd[:,6] .* Tau )
 
-    K::Array{Float64,1} = ( ( - ( Y ./ Tau ) .* dd.dPdDe + dd.dPdE .* ( 
-          0.5 * Vsq + Em ) + dd.dPdTau .* Tau ) ./ ( dd.dPdE ) )
-    H::Array{Float64,1} = ( Cs.^2 ./ ( dd.dPdE .* Tau ) ) + K
-    Alpha::Array{Float64,1} = 2.0 * Y .* dd.dPdDe - X .* Tau
-    W = Tau .* ( dd.dPdE .* ( Vsq - 2.0 * Em )
-               - 2.0 .* dd.dPdTau .* Tau )
+    K::Array{Float64,1} = ( ( - ( Y ./ Tau ) .* dd[:,5] + dd[:,4] .* ( 
+          0.5 * Vsq + Em ) + dd[:,6] .* Tau ) ./ ( dd[:,4] ) )
+    H::Array{Float64,1} = ( Cs.^2 ./ ( dd[:,4] .* Tau ) ) + K
+    Alpha::Array{Float64,1} = 2.0 * Y .* dd[:,5] - X .* Tau
+    W = Tau .* ( dd[:,4] .* ( Vsq - 2.0 * Em )
+               - 2.0 .* dd[:,6] .* Tau )
     invCsSq = 1.0 ./ ( Cs.^2 )
 
     # TODO: Replace H with Tau(E+P)
@@ -651,7 +659,7 @@ function Compute_invR1( D::Array{Float64,1}, E::Array{Float64,1}, Ne::Array{Floa
             [ + 0.25 * (W[i] + 2.0 * Cs[i] .* sqrt.( Gmdd11[i] ) .* Vu1[i]), 
             - 0.5 * Vd2[i] .* W[i],
             + (2.0 * Cs[i].^2 * X[i] + Alpha[i] .* W[i] ./ Tau[i]) ./ (2.0 .* X[i]),
-            - (Y[i]) .* dd.dPdDe[i] .* W[i] / (X[i] .* Tau[i]),
+            - (Y[i]) .* dd[:,5][i] .* W[i] / (X[i] .* Tau[i]),
             - 0.5 * Vd3[i] .* W[i],
             + 0.25 * (W[i] - 2.0 * Cs[i] .* sqrt.( Gmdd11[i] ) .* Vu1[i]) ]
 
@@ -659,7 +667,7 @@ function Compute_invR1( D::Array{Float64,1}, E::Array{Float64,1}, Ne::Array{Floa
             [ - 0.5 .* ( ( Cs[i] ./ sqrt.( Gmdd11[i] ) ) + Phi_u1[i] ),
             + Phi_u1[i] .* Vd2[i],
             - Phi_u1[i] .* Alpha[i] ./ (X[i] .* Tau[i]),
-            + 2.0 * Y[i] .* dd.dPdDe[i] .* Phi_u1[i] ./ (X[i] .* Tau[i]),
+            + 2.0 * Y[i] .* dd[:,5][i] .* Phi_u1[i] ./ (X[i] .* Tau[i]),
             + Phi_u1[i] .* Vd3[i],
             + 0.5 .* ( ( Cs[i] ./ sqrt.( Gmdd11[i] ) ) - Phi_u1[i] ) ]
 
@@ -667,7 +675,7 @@ function Compute_invR1( D::Array{Float64,1}, E::Array{Float64,1}, Ne::Array{Floa
             [ - 0.5 * Phi_u2[i],
             + Cs[i].^2 + Phi_u2[i] .* Vd2[i],
             - Phi_u2[i] .* Alpha[i] ./ (X[i] .* Tau[i]),
-            + 2.0 .* Y[i] .* dd.dPdDe[i] .* Phi_u2[i] ./ (X[i] .* Tau[i]),
+            + 2.0 .* Y[i] .* dd[:,5][i] .* Phi_u2[i] ./ (X[i] .* Tau[i]),
             + Phi_u2[i] .* Vd3[i],
             - 0.5 * Phi_u2[i] ]
 
@@ -675,25 +683,25 @@ function Compute_invR1( D::Array{Float64,1}, E::Array{Float64,1}, Ne::Array{Floa
             [ - 0.5 * Phi_u3[i],
             + Phi_u3[i] .* Vd2[i],
             - Phi_u3[i] .* Alpha[i] ./ (X[i] .* Tau[i]),
-            + 2.0 .* Y[i] .* dd.dPdDe[i] .* Phi_u3[i] ./ (X[i] .* Tau[i]),
+            + 2.0 .* Y[i] .* dd[:,5][i] .* Phi_u3[i] ./ (X[i] .* Tau[i]),
             + Cs[i].^2 + Phi_u3[i] .* Vd3[i],
             - 0.5 * Phi_u3[i] ]
 
         invR[i,:,5] = invCsSq[i] .*
-            [ + 0.5 * dd.dPdE[i] .* Tau[i],
+            [ + 0.5 * dd[:,4][i] .* Tau[i],
             - Phi_d2[i],
-            + dd.dPdE[i] .* Alpha[i]  ./ X[i],
-            - ((2.0 * Y[i] .* dd.dPdDe[i] .* dd.dPdE[i]) ./ X[i]),
+            + dd[:,4][i] .* Alpha[i]  ./ X[i],
+            - ((2.0 * Y[i] .* dd[:,5][i] .* dd[:,4][i]) ./ X[i]),
             - Phi_d3[i],
-            + 0.5 * dd.dPdE[i] .* Tau[i] ]
+            + 0.5 * dd[:,4][i] .* Tau[i] ]
 
         invR[i,:,6] = invCsSq[i] .*
-            [ + 0.5 * dd.dPdDe[i],
-            - Vd2[i] .* dd.dPdDe[i],
-            + (dd.dPdDe[i] .* (-2.0 * Cs[i].^2 + Alpha[i])) ./ (Tau[i] .* X[i]),
-            + 2.0 * dd.dPdDe[i] .* (Cs[i].^2 .- Y[i] .* dd.dPdDe[i]) ./ (Tau[i] .* X[i]),
-            - Vd3[i] .* dd.dPdDe[i],
-            + 0.5 * dd.dPdDe[i] ]
+            [ + 0.5 * dd[:,5][i],
+            - Vd2[i] .* dd[:,5][i],
+            + (dd[:,5][i] .* (-2.0 * Cs[i].^2 + Alpha[i])) ./ (Tau[i] .* X[i]),
+            + 2.0 * dd[:,5][i] .* (Cs[i].^2 .- Y[i] .* dd[:,5][i]) ./ (Tau[i] .* X[i]),
+            - Vd3[i] .* dd[:,5][i],
+            + 0.5 * dd[:,5][i] ]
 
     end
 
@@ -703,7 +711,7 @@ end
 """
 Compute the inverse matrix of right eigenvectors 1 from Barker et al.
 
-Note: we access derivatives as dd.dPdx[1] as they are returned as single element arrays.
+Note: we access derivatives as dd[:,i][1] as they are returned as single element arrays.
 
 Parameters:
 -----------
@@ -744,7 +752,7 @@ function Compute_invR1( D::Float64, E::Float64, Ne::Float64,
         Cs *= 1e5
     end
 
-    dd::DataFrame = ComputeDerivatives_Pressure( D, E, Ne, Units_Option=Units_Option )
+    dd::Array{Float64,2} = ComputeDerivatives_Pressure( D, E, Ne, Units_Option=Units_Option )
 
     Vd1::Float64 = Gmdd11 .* Vu1
     Vd2::Float64 = Gmdd22 .* Vu2
@@ -752,27 +760,27 @@ function Compute_invR1( D::Float64, E::Float64, Ne::Float64,
 
     Tau::Float64 = 1.0 ./ D
 
-    Phi_u1::Float64 = dd.dPdE[1] .* Tau .* Vu1
-    Phi_u2::Float64 = dd.dPdE[1] .* Tau .* Vu2
-    Phi_u3::Float64 = dd.dPdE[1] .* Tau .* Vu3
+    Phi_u1::Float64 = dd[:,4][1] .* Tau .* Vu1
+    Phi_u2::Float64 = dd[:,4][1] .* Tau .* Vu2
+    Phi_u3::Float64 = dd[:,4][1] .* Tau .* Vu3
 
-    Phi_d1::Float64 = dd.dPdE[1] .* Tau .* Vd1
-    Phi_d2::Float64 = dd.dPdE[1] .* Tau .* Vd2
-    Phi_d3::Float64 = dd.dPdE[1] .* Tau .* Vd3
+    Phi_d1::Float64 = dd[:,4][1] .* Tau .* Vd1
+    Phi_d2::Float64 = dd[:,4][1] .* Tau .* Vd2
+    Phi_d3::Float64 = dd[:,4][1] .* Tau .* Vd3
 
     Vsq::Float64 = Vu1 .* Vd1 + Vu2 .* Vd2 + Vu3 .* Vd3
 
     Delta::Float64 = Vu1 .* Vd1 - Vu2 .* Vd2 - Vu3 .* Vd3
     B::Float64 = 0.5 .* ( Delta + 2.0 .* Em + 
-        (2.0 .* dd.dPdTau[1] .* Tau) ./ dd.dPdE[1])
-    X::Float64 = (dd.dPdE[1] .* ( Delta + 2.0 * Em) + 2.0 * dd.dPdTau[1] .* Tau )
+        (2.0 .* dd[:,6][1] .* Tau) ./ dd[:,4][1])
+    X::Float64 = (dd[:,4][1] .* ( Delta + 2.0 * Em) + 2.0 * dd[:,6][1] .* Tau )
 
-    K::Float64 = ( ( - ( Y ./ Tau ) .* dd.dPdDe[1] + dd.dPdE[1] .* ( 
-          0.5 * Vsq + Em ) + dd.dPdTau[1] .* Tau ) ./ ( dd.dPdE[1] ) )
-    H::Float64 = ( Cs.^2 ./ ( dd.dPdE[1] .* Tau ) ) + K
-    Alpha::Float64 = 2.0 * Y .* dd.dPdDe[1] - X .* Tau
-    W = Tau .* ( dd.dPdE[1] .* ( Vsq - 2.0 * Em )
-               - 2.0 .* dd.dPdTau[1] .* Tau )
+    K::Float64 = ( ( - ( Y ./ Tau ) .* dd[:,5][1] + dd[:,4][1] .* ( 
+          0.5 * Vsq + Em ) + dd[:,6][1] .* Tau ) ./ ( dd[:,4][1] ) )
+    H::Float64 = ( Cs.^2 ./ ( dd[:,4][1] .* Tau ) ) + K
+    Alpha::Float64 = 2.0 * Y .* dd[:,5][1] - X .* Tau
+    W = Tau .* ( dd[:,4][1] .* ( Vsq - 2.0 * Em )
+               - 2.0 .* dd[:,6][1] .* Tau )
     invCsSq = 1.0 ./ ( Cs.^2 )
 
     # TODO: Replace H with Tau(E+P)
@@ -782,7 +790,7 @@ function Compute_invR1( D::Float64, E::Float64, Ne::Float64,
         [ + 0.25 * (W + 2.0 * Cs .* sqrt.( Gmdd11 ) .* Vu1), 
           - 0.5 * Vd2 .* W,
           + (2.0 * Cs.^2 * X + Alpha .* W ./ Tau) ./ (2.0 .* X),
-          - (Y) .* dd.dPdDe[1] .* W / (X .* Tau),
+          - (Y) .* dd[:,5][1] .* W / (X .* Tau),
           - 0.5 * Vd3 .* W,
           + 0.25 * (W - 2.0 * Cs .* sqrt.( Gmdd11 ) .* Vu1) ]
 
@@ -790,7 +798,7 @@ function Compute_invR1( D::Float64, E::Float64, Ne::Float64,
         [ - 0.5 .* ( ( Cs ./ sqrt.( Gmdd11 ) ) + Phi_u1 ),
           + Phi_u1 .* Vd2,
           - Phi_u1 .* Alpha ./ (X .* Tau),
-          + 2.0 * Y .* dd.dPdDe[1] .* Phi_u1 ./ (X .* Tau),
+          + 2.0 * Y .* dd[:,5][1] .* Phi_u1 ./ (X .* Tau),
           + Phi_u1 .* Vd3,
           + 0.5 .* ( ( Cs ./ sqrt.( Gmdd11 ) ) - Phi_u1 ) ]
 
@@ -798,7 +806,7 @@ function Compute_invR1( D::Float64, E::Float64, Ne::Float64,
         [ - 0.5 * Phi_u2,
           + Cs.^2 + Phi_u2 .* Vd2,
           - Phi_u2 .* Alpha ./ (X .* Tau),
-          + 2.0 .* Y .* dd.dPdDe[1] .* Phi_u2 ./ (X .* Tau),
+          + 2.0 .* Y .* dd[:,5][1] .* Phi_u2 ./ (X .* Tau),
           + Phi_u2 .* Vd3,
           - 0.5 * Phi_u2 ]
 
@@ -806,25 +814,25 @@ function Compute_invR1( D::Float64, E::Float64, Ne::Float64,
         [ - 0.5 * Phi_u3,
           + Phi_u3 .* Vd2,
           - Phi_u3 .* Alpha ./ (X .* Tau),
-          + 2.0 .* Y .* dd.dPdDe[1] .* Phi_u3 ./ (X .* Tau),
+          + 2.0 .* Y .* dd[:,5][1] .* Phi_u3 ./ (X .* Tau),
           + Cs.^2 + Phi_u3 .* Vd3,
           - 0.5 * Phi_u3 ]
 
     invR[:,5] = invCsSq .*
-        [ + 0.5 * dd.dPdE[1] .* Tau,
+        [ + 0.5 * dd[:,4][1] .* Tau,
           - Phi_d2,
-          + dd.dPdE[1] .* Alpha  ./ X,
-          - ((2.0 * Y .* dd.dPdDe[1] .* dd.dPdE[1]) ./ X),
+          + dd[:,4][1] .* Alpha  ./ X,
+          - ((2.0 * Y .* dd[:,5][1] .* dd[:,4][1]) ./ X),
           - Phi_d3,
-          + 0.5 * dd.dPdE[1] .* Tau ]
+          + 0.5 * dd[:,4][1] .* Tau ]
 
     invR[:,6] = invCsSq .*
-        [ + 0.5 * dd.dPdDe[1],
-          - Vd2 .* dd.dPdDe[1],
-          + (dd.dPdDe[1] .* (-2.0 * Cs.^2 + Alpha)) ./ (Tau .* X),
-          + 2.0 * dd.dPdDe[1] .* (Cs.^2 .- Y .* dd.dPdDe[1]) ./ (Tau .* X),
-          - Vd3 .* dd.dPdDe[1],
-          + 0.5 * dd.dPdDe[1] ]
+        [ + 0.5 * dd[:,5][1],
+          - Vd2 .* dd[:,5][1],
+          + (dd[:,5][1] .* (-2.0 * Cs.^2 + Alpha)) ./ (Tau .* X),
+          + 2.0 * dd[:,5][1] .* (Cs.^2 .- Y .* dd[:,5][1]) ./ (Tau .* X),
+          - Vd3 .* dd[:,5][1],
+          + 0.5 * dd[:,5][1] ]
 
     return invR
 end
