@@ -66,7 +66,7 @@ function load_thornado_single( Dir::AbstractString, filenumber::AbstractString; 
 
     return DataFrame( x1=x1, uCF_D=uCF_D, uCF_E=uCF_E, uCF_S1=uCF_S1, uCF_S2=uCF_S2, uCF_S3=uCF_S3,
         uAF_T=uAF_T, uAF_Ye=uAF_Ye, uAF_P=uAF_P, uAF_Cs=uAF_Cs, uCF_Ne=uCF_Ne, 
-        uPF_V1=uPF_V1, uPF_V2=uPF_V2, uPF_V3=uPF_V3, uPF_Ev=uPF_Ev, uAF_Em=uAF_Em )
+        uPF_V1=uPF_V1, uPF_V2=uPF_V2, uPF_V3=uPF_V3, uPF_Ev=uPF_Ev, uAF_Em=uAF_Em ), t
 end
 
 """

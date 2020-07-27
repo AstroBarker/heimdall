@@ -364,9 +364,8 @@ function ComputeDerivatives_SpecificInternalEnergy( D::Float64, E::Float64, Ne::
     # Probably due to my ignorance, but it's the only way I could 
     # get it to work.
     # ===================================================================
-    ccall( (:computederivatives_pressure_scalar_, "./EoS_jl.so"), Nothing, 
-    ( Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, 
-    Ref{Float64}, Ref{Bool} ), 
+    ccall( (:computederivatives_internalenergy_scalar_, "./EoS_jl.so"), Nothing, 
+    ( Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Bool} ), 
     D, E, Ne, dEdD, dEdT, dEdY, Units_Option )
     
     df::DataFrame = DataFrame(dEdD=dedD.x[1][1], dEdT=dEdT.x[1][1], dEdY=dedY.x[1][1])
