@@ -25,6 +25,10 @@ ComputeDerivatives_Pressure(D, E, Ne) - 2 methods
     Compute derivatives of pressure from conserved variables D, E, Ne.
     Can accept all vectors D, E, Ne or all scalar D, E, Ne
 
+ComputeDerivatives_SpecificInternalEnergy(D, E, Ne) - 2 methods
+    Compute derivatives of specific internal energy from conserved variables D, E, Ne.
+    Can accept all vectors D, E, Ne or all scalar D, E, Ne
+
 Compute_R1(D, E, Ne, Vu1, Vu2, Vu3, Ye, Em, Cs, Gmdd11, Gmdd22, Gmdd33) - 2 methods
     Compute matrix of right eigenvectors. Single point or vector of points 
 
@@ -52,6 +56,7 @@ Units::Struct - struct to hold units for converting to/from code units/physical 
 TODO:
 ------
 
+Implement flux jacobians
 Needs testing & work for general coordinates.
 Create methods for 2D data.
 
@@ -916,7 +921,7 @@ function Compute_Characteristics( U::Array{Float64,2},
 
     nx = length( U[:,1] )
 
-    invR::Array{Float64,3} = Compute_invR1( U[:,1], U[:,5], U[:,6]/1.2329024849255997e-54, Vu1, Vu2, Vu3, Y, Em, Cs, 
+    invR::Array{Float64,3} = Compute_invR1( U[:,1], U[:,5], Ne, Vu1, Vu2, Vu3, Y, Em, Cs, 
         Gmdd11, Gmdd22, Gmdd33, Units_Option=false )
 
     new_U::Array{Float64,1} = RemoveUnits_U( U )

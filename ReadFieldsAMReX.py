@@ -119,10 +119,11 @@ def Load_AMReX( DataDirectory: str, fileNumber: int ):
 
     numFields = 15 # UPDATE if you add/remove from Data !!! 
     temp = CoveringGrid['PF_D' ].to_ndarray()
+    print(len(temp[:,:,0]))
 
     # Setup Data array. 
     if nDims == 1:
-        nx = len( temp[0] )
+        nx = len( temp[:,:,0] ) # it works..
         ny = 1
         nz = 1
         Data = np.zeros( (numFields, nx, ny, nz) )
@@ -137,7 +138,7 @@ def Load_AMReX( DataDirectory: str, fileNumber: int ):
         nz = len( temp[2])
         Data = np.zeros( (numFields, nx, ny, nz) )
 
-    Data[0,:,:] = temp
+    Data[0,:,:,:] = temp
     iPF_D = 1
 
     # TODO: Make "fields = [...]" and loop over fields.
