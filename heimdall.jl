@@ -121,12 +121,13 @@ function AddUnits_U( U::Array{Float64,2} )
     new_U::Array{Float64,2} = zero( U )
 
     for i in 1:nx
-        new_U[i,:] = U[i,:] ./ U_Units
+        @inbounds new_U[i,:] = U[i,:] ./ U_Units
     end
 
     return new_U
 
 end
+
 
 """
 Convert code units to physical units for vector of conserved quantities U.
@@ -149,6 +150,7 @@ function AddUnits_U( U::Float64 )
     return U ./ U_Units
 
 end
+
 
 """
 Convert physical units to code units for vector of conserved quantities U.
@@ -173,12 +175,13 @@ function RemoveUnits_U( U::Array{Float64,2} )
     new_U::Array{Float64,2} = zero( U )
 
     for i in 1:nx
-        new_U[i,:] = U[i,:] .* U_Units
+        @inbounds new_U[i,:] = U[i,:] .* U_Units
     end
 
     return new_U
 
 end
+
 
 """
 Convert physical units to code units for vector of conserved quantities U.
@@ -202,6 +205,7 @@ function RemoveUnits_U( U::Float64 )
 
 end
 
+
 """
 Call ComputeDerivatives_Pressure() from EoS_jl.f90 to compute thermodynamic derivatives 
 of pressure. This routine takes the conserved variables D, E, Ne as primary inputs and 
@@ -220,7 +224,7 @@ Parameters:
 
 D::Array{Float64, 1} - thornado density profile
 E::Array{Float64, 1} - thornado conserved energy density profile
-Ne::Array{Float64,1} - thornado conserved electron fraction profile
+Ne::Array{Float64,1} - thornado conserved electron number density profile
 Units_Option::Bool (default: true) - if true, inputs are given in physical units
 """
 function ComputeDerivatives_Pressure( D::Array{Float64, 1}, E::Array{Float64, 1}, Ne::Array{Float64,1};
@@ -250,6 +254,7 @@ function ComputeDerivatives_Pressure( D::Array{Float64, 1}, E::Array{Float64, 1}
 
 end    
 
+
 """
 Call ComputeDerivatives_Pressure() from EoS_jl.f90 to compute thermodynamic derivatives 
 of pressure. This routine takes the conserved variables D, E, Ne as primary inputs and 
@@ -268,7 +273,7 @@ Parameters:
 
 D::Float64 - thornado density profile
 E::Float64 - thornado conserved energy density profile
-Ne::Float64 - thornado conserved electron fraction profile
+Ne::Float64 - thornado conserved electron number density profile
 Units_Option::Bool (default: true) - if true, inputs are given in physical units
 """
 function ComputeDerivatives_Pressure( D::Float64, E::Float64, Ne::Float64; 
@@ -301,6 +306,7 @@ function ComputeDerivatives_Pressure( D::Float64, E::Float64, Ne::Float64;
 
 end   
 
+
 """
 Call ComputeDerivatives_InternalEnergy() from EoS_jl.f90 to compute thermodynamic derivatives 
 of specific internal energy. This routine takes the conserved variables D, E, Ne as primary inputs and 
@@ -316,7 +322,7 @@ Parameters:
 
 D::Array{Float64, 1} - thornado density profile
 E::Array{Float64, 1} - thornado conserved energy density profile
-Ne::Array{Float64,1} - thornado conserved electron fraction profile
+Ne::Array{Float64,1} - thornado conserved electron number density profile
 Units_Option::Bool (default: true) - if true, inputs are given in physical units
 """
 function ComputeDerivatives_SpecificInternalEnergy( D::Array{Float64, 1}, E::Array{Float64, 1}, Ne::Array{Float64,1};
@@ -342,6 +348,7 @@ function ComputeDerivatives_SpecificInternalEnergy( D::Array{Float64, 1}, E::Arr
 
 end  
 
+
 """
 Call ComputeDerivatives_InternalEnergy() from EoS_jl.f90 to compute thermodynamic derivatives 
 of specific internal energy. This routine takes the conserved variables D, E, Ne as primary inputs and 
@@ -357,7 +364,7 @@ Parameters:
 
 D::Float64 - thornado density profile
 E::Float64 - thornado conserved energy density profile
-Ne::Float64 - thornado conserved electron fraction profile
+Ne::Float64 - thornado conserved electron number density profile
 Units_Option::Bool (default: true) - if true, inputs are given in physical units
 """
 function ComputeDerivatives_SpecificInternalEnergy( D::Float64, E::Float64, Ne::Float64; 
@@ -386,6 +393,95 @@ function ComputeDerivatives_SpecificInternalEnergy( D::Float64, E::Float64, Ne::
 
 end   
 
+
+"""
+Call ComputeDerivatives_Entropy() from EoS_jl.f90 to compute thermodynamic derivatives 
+of entropy. This routine takes variables D, T, Y as primary inputs and 
+constructs the rest of the thermodynamic variables consistently from them.
+
+Derivatives loaded into array - dSdD = array[idD]
+idD = 1
+idT = 2
+idY = 3
+
+Parameters:
+-----------
+
+D::Array{Float64, 1} - thornado density profile
+T::Array{Float64, 1} - thornado temperature profile
+Y::Array{Float64,1} - thornado conserved electron fraction profile
+Units_Option::Bool (default: true) - if true, inputs are given in physical units
+"""
+function ComputeDerivatives_Entropy( D::Array{Float64, 1}, T::Array{Float64, 1}, Y::Array{Float64,1};
+    Units_Option::Bool=true )
+
+    # Initialize arrays to hold derivatives
+    nx     :: Int32             = length( D )
+    dSdD   :: Array{Float64, 1} = zeros( nx );
+    dSdT   :: Array{Float64, 1} = zeros( nx );
+    dSdY   :: Array{Float64, 1} = zeros( nx );
+
+    # ===================================================================
+    # This calls the FORTRAN function :computederivatives_entropy_
+    # FORTRAN compilation mangles the name. Cvoid is the return 
+    # type, the next parameters are input types, followed 
+    # by the arguements. 
+    # ===================================================================
+    ccall( (:computederivatives_entropy_, "./EoS_jl.so"), Cvoid, 
+    ( Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Int32}, Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Int32} ), 
+    D, T, Y, nx, dSdD, dSdT, dSdY, Units_Option )
+
+    return hcat( dSdD, dSdT, dSdY )
+
+end  
+
+
+"""
+Call ComputeDerivatives_Entropy() from EoS_jl.f90 to compute thermodynamic derivatives 
+of entropy. This routine takes variables D, T, Y as primary inputs and 
+constructs the rest of the thermodynamic variables consistently from them.
+
+Derivatives loaded into array - dSdD = array[idD]
+idD = 1
+idT = 2
+idY = 3
+
+Parameters:
+-----------
+
+D::Array{Float64, 1} - thornado density profile
+T::Array{Float64, 1} - thornado temperature profile
+Y::Array{Float64,1} - thornado conserved electron fraction profile
+Units_Option::Bool (default: true) - if true, inputs are given in physical units
+"""
+function ComputeDerivatives_Entropy( D::Float64, T::Float64, Y::Float64;
+    Units_Option::Bool=true )
+
+    # Initialize arrays to hold derivatives
+    nx     :: Int32             = length( D )
+    dSdD   :: Float64 = zeros( nx );
+    dSdT   :: Float64 = zeros( nx );
+    dSdY   :: Float64 = zeros( nx );
+
+    # ===================================================================
+    # This calls the FORTRAN function :computederivatives_entropy_
+    # FORTRAN compilation mangles the name. Cvoid is the return 
+    # type, the next parameters are input types, followed 
+    # by the arguements. 
+    #
+    # Slightly different syntax from the vector version above.
+    # Probably due to my ignorance, but it's the only way I could 
+    # get it to work.
+    # ===================================================================
+    ccall( (:computederivatives_entropy_scalar_, "./EoS_jl.so"), Nothing, 
+    ( Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Int32} ), 
+    D, T, Y, dSdD, dSdT, dSdY, Units_Option )
+
+    return hcat( dSdD, dSdT, dSdY )
+
+end  
+
+
 """
 Compute analytic sound speed using expression in Barker et al senior thesis.
 If passed with units, this will be in cm/s.
@@ -404,6 +500,7 @@ function Compute_Cs( D::Array{Float64,1}, P::Array{Float64,1}, Y::Array{Float64,
     CsSq::Array{Float64,1} = Tau.^2 .* ( P .* dPdE .- dPdTau ) .+ Y .* dPdDe 
 end
 
+
 """
 Compute analytic sound speed using expression in Barker et al senior thesis.
 If passed with units, this will be in cm/s.
@@ -420,6 +517,24 @@ function Compute_Cs( D::Float64, P::Float64, Y::Float64,
     Tau::Float64 = 1.0 / D
     CsSq::Float64 = Tau^2 * ( P * dPdE - dPdTau ) + Y * dPdDe 
 end
+
+"""
+Compute analytic sound speed using standard expression.
+If passed with units, this will be in cm/s.
+
+Parameters:
+-----------
+dPdD::Array{Float64, 1} - derivative of pressure w.r.t density
+dSdT::Array{Float64, 1} - derivative of entropy w.r.t temperature
+dPdT::Array{Float64, 1} - derivative of pressure w.r.t temperature
+dSdD::Array{Float64, 1} - derivative of entropy w.r.t density
+"""
+function Compute_Cs_2( dPdD::Array{Float64,1}, dSdT::Array{Float64,1}, dPdT::Array{Float64,1}, 
+    dSdD::Array{Float64,1} )
+
+    CsSq::Array{Float64,1} = dPdD - dPdT .* dSdD ./ dSdT
+end
+
 
 """
 Compute the matrix of right eigenvectors from Barker et al.
@@ -485,7 +600,7 @@ function Compute_R1( D::Array{Float64, 1}, E::Array{Float64, 1}, Ne::Array{Float
     # TODO: Try analytic sound speed?
 
     for i in 1:length(D)
-        
+        @inbounds
         R[i,:,1] = [ 1.0, Vd1[i] .- Cs[i] .* sqrt.( Gmdd11[i] ), Vd2[i], 
             Vd3[i], H[i] - Cs[i] .* sqrt.( Gmdd11[i] ) .* Vu1[i], Y[i] ]
         R[i,:,2] = [ 0.0, 0.0, 1.0, 0.0, Vu2[i], 0.0 ]
@@ -501,6 +616,7 @@ function Compute_R1( D::Array{Float64, 1}, E::Array{Float64, 1}, Ne::Array{Float
     return R
 
 end
+
 
 """
 Compute the matrix of right eigenvectors from Barker et al.
@@ -581,6 +697,7 @@ function Compute_R1( D::Float64, E::Float64, Ne::Float64,
     return R
 end
 
+
 """
 Compute the inverse matrix of right eigenvectors 1 from Barker et al.
 
@@ -659,7 +776,7 @@ function Compute_invR1( D::Array{Float64,1}, E::Array{Float64,1}, Ne::Array{Floa
     # TODO: Try analytic sound speed?
 
     for i in 1:length(D)
-
+        @inbounds
         invR[i,:,1] = invCsSq[i] .*
             [ + 0.25 * (W[i] + 2.0 * Cs[i] .* sqrt.( Gmdd11[i] ) .* Vu1[i]), 
             - 0.5 * Vd2[i] .* W[i],
@@ -712,6 +829,7 @@ function Compute_invR1( D::Array{Float64,1}, E::Array{Float64,1}, Ne::Array{Floa
 
     return invR
 end
+
 
 """
 Compute the inverse matrix of right eigenvectors 1 from Barker et al.
@@ -842,6 +960,7 @@ function Compute_invR1( D::Float64, E::Float64, Ne::Float64,
     return invR
 end
 
+
 """
 Compute the characteristic quantities w = invR U.
 w[i,:] will access the i-th characteristic field for i in 1:length( domain ).
@@ -880,7 +999,7 @@ function Compute_Characteristics( U::Array{Float64,2}, Ne::Array{Float64,1},
     w::Array{Float64,2} = zero( U )
 
     for i in 1:nx
-        w[i,:] = invR[i,:,:] * new_U[i,:]
+        @inbounds w[i,:] = invR[i,:,:] * new_U[i,:]
     end
 
     if Units_Option
@@ -890,6 +1009,7 @@ function Compute_Characteristics( U::Array{Float64,2}, Ne::Array{Float64,1},
     return w
 
 end
+
 
 """
 Compute the characteristic quantities w = invR U.
@@ -929,7 +1049,7 @@ function Compute_Characteristics( U::Array{Float64,2},
     w::Array{Float64,2} = zero( U )
 
     for i in 1:nx
-        w[i,:] = invR[i,:,:] * new_U[i,:]
+        @inbounds w[i,:] = invR[i,:,:] * new_U[i,:]
     end
 
     if Units_Option
