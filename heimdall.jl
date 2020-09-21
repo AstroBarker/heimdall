@@ -600,15 +600,14 @@ function Compute_R1( D::Array{Float64, 1}, E::Array{Float64, 1}, Ne::Array{Float
     # TODO: Try analytic sound speed?
 
     for i in 1:length(D)
-        @inbounds
-        R[i,:,1] = [ 1.0, Vd1[i] .- Cs[i] .* sqrt.( Gmdd11[i] ), Vd2[i], 
+        @inbounds R[i,:,1] = [ 1.0, Vd1[i] .- Cs[i] .* sqrt.( Gmdd11[i] ), Vd2[i], 
             Vd3[i], H[i] - Cs[i] .* sqrt.( Gmdd11[i] ) .* Vu1[i], Y[i] ]
-        R[i,:,2] = [ 0.0, 0.0, 1.0, 0.0, Vu2[i], 0.0 ]
-        R[i,:,3] = [ 1.0, Vd1[i], 0.0, 0.0, B[i], 0.0 ]
-        R[i,:,4] = [ 1.0, Vd1[i], 0.0, 0.0, 0.0,
+        @inbounds R[i,:,2] = [ 0.0, 0.0, 1.0, 0.0, Vu2[i], 0.0 ]
+        @inbounds R[i,:,3] = [ 1.0, Vd1[i], 0.0, 0.0, B[i], 0.0 ]
+        @inbounds R[i,:,4] = [ 1.0, Vd1[i], 0.0, 0.0, 0.0,
             (Tau[i] .* X[i]) ./ (2.0 * dd[:,5][i]) ]
-        R[i,:,5] = [ 0.0, 0.0, 0.0, 1.0, Vu3[i], 0.0 ]
-        R[i,:,6] = [ 1.0, Vd1[i] + Cs[i] .* sqrt.( Gmdd11[i] ), Vd2[i],
+        @inbounds R[i,:,5] = [ 0.0, 0.0, 0.0, 1.0, Vu3[i], 0.0 ]
+        @inbounds R[i,:,6] = [ 1.0, Vd1[i] + Cs[i] .* sqrt.( Gmdd11[i] ), Vd2[i],
             Vd3[i], H[i] + Cs[i] .* sqrt.( Gmdd11[i] ) .* Vu1[i], Y[i] ]
 
     end
@@ -776,8 +775,7 @@ function Compute_invR1( D::Array{Float64,1}, E::Array{Float64,1}, Ne::Array{Floa
     # TODO: Try analytic sound speed?
 
     for i in 1:length(D)
-        @inbounds
-        invR[i,:,1] = invCsSq[i] .*
+        @inbounds invR[i,:,1] = invCsSq[i] .*
             [ + 0.25 * (W[i] + 2.0 * Cs[i] .* sqrt.( Gmdd11[i] ) .* Vu1[i]), 
             - 0.5 * Vd2[i] .* W[i],
             + (2.0 * Cs[i].^2 * X[i] + Alpha[i] .* W[i] ./ Tau[i]) ./ (2.0 .* X[i]),
@@ -785,7 +783,7 @@ function Compute_invR1( D::Array{Float64,1}, E::Array{Float64,1}, Ne::Array{Floa
             - 0.5 * Vd3[i] .* W[i],
             + 0.25 * (W[i] - 2.0 * Cs[i] .* sqrt.( Gmdd11[i] ) .* Vu1[i]) ]
 
-        invR[i,:,2] = invCsSq[i] .*
+        @inbounds invR[i,:,2] = invCsSq[i] .*
             [ - 0.5 .* ( ( Cs[i] ./ sqrt.( Gmdd11[i] ) ) + Phi_u1[i] ),
             + Phi_u1[i] .* Vd2[i],
             - Phi_u1[i] .* Alpha[i] ./ (X[i] .* Tau[i]),
@@ -793,7 +791,7 @@ function Compute_invR1( D::Array{Float64,1}, E::Array{Float64,1}, Ne::Array{Floa
             + Phi_u1[i] .* Vd3[i],
             + 0.5 .* ( ( Cs[i] ./ sqrt.( Gmdd11[i] ) ) - Phi_u1[i] ) ]
 
-        invR[i,:,3] = invCsSq[i] .* 
+        @inbounds invR[i,:,3] = invCsSq[i] .* 
             [ - 0.5 * Phi_u2[i],
             + Cs[i].^2 + Phi_u2[i] .* Vd2[i],
             - Phi_u2[i] .* Alpha[i] ./ (X[i] .* Tau[i]),
@@ -801,7 +799,7 @@ function Compute_invR1( D::Array{Float64,1}, E::Array{Float64,1}, Ne::Array{Floa
             + Phi_u2[i] .* Vd3[i],
             - 0.5 * Phi_u2[i] ]
 
-        invR[i,:,4] = invCsSq[i] .*
+        @inbounds invR[i,:,4] = invCsSq[i] .*
             [ - 0.5 * Phi_u3[i],
             + Phi_u3[i] .* Vd2[i],
             - Phi_u3[i] .* Alpha[i] ./ (X[i] .* Tau[i]),
@@ -809,7 +807,7 @@ function Compute_invR1( D::Array{Float64,1}, E::Array{Float64,1}, Ne::Array{Floa
             + Cs[i].^2 + Phi_u3[i] .* Vd3[i],
             - 0.5 * Phi_u3[i] ]
 
-        invR[i,:,5] = invCsSq[i] .*
+        @inbounds invR[i,:,5] = invCsSq[i] .*
             [ + 0.5 * dd[:,4][i] .* Tau[i],
             - Phi_d2[i],
             + dd[:,4][i] .* Alpha[i]  ./ X[i],
@@ -817,7 +815,7 @@ function Compute_invR1( D::Array{Float64,1}, E::Array{Float64,1}, Ne::Array{Floa
             - Phi_d3[i],
             + 0.5 * dd[:,4][i] .* Tau[i] ]
 
-        invR[i,:,6] = invCsSq[i] .*
+        @inbounds invR[i,:,6] = invCsSq[i] .*
             [ + 0.5 * dd[:,5][i],
             - Vd2[i] .* dd[:,5][i],
             + (dd[:,5][i] .* (-2.0 * Cs[i].^2 + Alpha[i])) ./ (Tau[i] .* X[i]),
