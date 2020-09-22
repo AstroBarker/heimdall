@@ -394,7 +394,7 @@ function ComputeDerivatives_SpecificInternalEnergy( D::Float64, E::Float64, Ne::
 end   
 
 
-"""
+""" DEPRECIATED
 Call ComputeDerivatives_Entropy() from EoS_jl.f90 to compute thermodynamic derivatives 
 of entropy. This routine takes variables D, T, Y as primary inputs and 
 constructs the rest of the thermodynamic variables consistently from them.
@@ -412,31 +412,31 @@ T::Array{Float64, 1} - thornado temperature profile
 Y::Array{Float64,1} - thornado conserved electron fraction profile
 Units_Option::Bool (default: true) - if true, inputs are given in physical units
 """
-function ComputeDerivatives_Entropy( D::Array{Float64, 1}, T::Array{Float64, 1}, Y::Array{Float64,1};
-    Units_Option::Bool=true )
+# function ComputeDerivatives_Entropy( D::Array{Float64, 1}, T::Array{Float64, 1}, Y::Array{Float64,1};
+#     Units_Option::Bool=true )
 
-    # Initialize arrays to hold derivatives
-    nx     :: Int32             = length( D )
-    dSdD   :: Array{Float64, 1} = zeros( nx );
-    dSdT   :: Array{Float64, 1} = zeros( nx );
-    dSdY   :: Array{Float64, 1} = zeros( nx );
+#     # Initialize arrays to hold derivatives
+#     nx     :: Int32             = length( D )
+#     dSdD   :: Array{Float64, 1} = zeros( nx );
+#     dSdT   :: Array{Float64, 1} = zeros( nx );
+#     dSdY   :: Array{Float64, 1} = zeros( nx );
 
-    # ===================================================================
-    # This calls the FORTRAN function :computederivatives_entropy_
-    # FORTRAN compilation mangles the name. Cvoid is the return 
-    # type, the next parameters are input types, followed 
-    # by the arguements. 
-    # ===================================================================
-    ccall( (:computederivatives_entropy_, "./EoS_jl.so"), Cvoid, 
-    ( Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Int32}, Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Int32} ), 
-    D, T, Y, nx, dSdD, dSdT, dSdY, Units_Option )
+#     # ===================================================================
+#     # This calls the FORTRAN function :computederivatives_entropy_
+#     # FORTRAN compilation mangles the name. Cvoid is the return 
+#     # type, the next parameters are input types, followed 
+#     # by the arguements. 
+#     # ===================================================================
+#     ccall( (:computederivatives_entropy_, "./EoS_jl.so"), Cvoid, 
+#     ( Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Int32}, Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Int32} ), 
+#     D, T, Y, nx, dSdD, dSdT, dSdY, Units_Option )
 
-    return hcat( dSdD, dSdT, dSdY )
+#     return hcat( dSdD, dSdT, dSdY )
 
-end  
+# end  
 
 
-"""
+""" DEPRECIATED
 Call ComputeDerivatives_Entropy() from EoS_jl.f90 to compute thermodynamic derivatives 
 of entropy. This routine takes variables D, T, Y as primary inputs and 
 constructs the rest of the thermodynamic variables consistently from them.
@@ -454,32 +454,32 @@ T::Array{Float64, 1} - thornado temperature profile
 Y::Array{Float64,1} - thornado conserved electron fraction profile
 Units_Option::Bool (default: true) - if true, inputs are given in physical units
 """
-function ComputeDerivatives_Entropy( D::Float64, T::Float64, Y::Float64;
-    Units_Option::Bool=true )
+# function ComputeDerivatives_Entropy( D::Float64, T::Float64, Y::Float64;
+#     Units_Option::Bool=true )
 
-    # Initialize arrays to hold derivatives
-    nx     :: Int32             = length( D )
-    dSdD   :: Float64 = zeros( nx );
-    dSdT   :: Float64 = zeros( nx );
-    dSdY   :: Float64 = zeros( nx );
+#     # Initialize arrays to hold derivatives
+#     nx     :: Int32             = length( D )
+#     dSdD   :: Float64 = zeros( nx );
+#     dSdT   :: Float64 = zeros( nx );
+#     dSdY   :: Float64 = zeros( nx );
 
-    # ===================================================================
-    # This calls the FORTRAN function :computederivatives_entropy_
-    # FORTRAN compilation mangles the name. Cvoid is the return 
-    # type, the next parameters are input types, followed 
-    # by the arguements. 
-    #
-    # Slightly different syntax from the vector version above.
-    # Probably due to my ignorance, but it's the only way I could 
-    # get it to work.
-    # ===================================================================
-    ccall( (:computederivatives_entropy_scalar_, "./EoS_jl.so"), Nothing, 
-    ( Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Int32} ), 
-    D, T, Y, dSdD, dSdT, dSdY, Units_Option )
+#     # ===================================================================
+#     # This calls the FORTRAN function :computederivatives_entropy_
+#     # FORTRAN compilation mangles the name. Cvoid is the return 
+#     # type, the next parameters are input types, followed 
+#     # by the arguements. 
+#     #
+#     # Slightly different syntax from the vector version above.
+#     # Probably due to my ignorance, but it's the only way I could 
+#     # get it to work.
+#     # ===================================================================
+#     ccall( (:computederivatives_entropy_scalar_, "./EoS_jl.so"), Nothing, 
+#     ( Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Float64}, Ref{Int32} ), 
+#     D, T, Y, dSdD, dSdT, dSdY, Units_Option )
 
-    return hcat( dSdD, dSdT, dSdY )
+#     return hcat( dSdD, dSdT, dSdY )
 
-end  
+# end  
 
 
 """
