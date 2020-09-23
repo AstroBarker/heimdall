@@ -520,30 +520,30 @@ function Compute_R1( D::Array{Float64, 1}, E::Array{Float64, 1}, Ne::Array{Float
     Vd2::Array{Float64,1} = Gmdd22 .* Vu2
     Vd3::Array{Float64,1} = Gmdd33 .* Vu3
 
-    Vsq::Array{Float64,1} = Vu1 .* Vd1 + Vu2 .* Vd2 + Vu3 .* Vd3
+    Vsq::Array{Float64,1} = Vu1 .* Vd1 .+ Vu2 .* Vd2 .+ Vu3 .* Vd3
 
     Tau::Array{Float64,1} = 1.0 ./ D
-    Delta::Array{Float64,1} = Vu1 .* Vd1 - Vu2 .* Vd2 - Vu3 .* Vd3
-    B::Array{Float64,1} = 0.5 .* ( Delta + 2.0 .* Em + 
+    Delta::Array{Float64,1} = Vu1 .* Vd1 .- Vu2 .* Vd2 .- Vu3 .* Vd3
+    B::Array{Float64,1} = 0.5 .* ( Delta .+ 2.0 .* Em .+ 
         (2.0 .* dd[:,6] .* Tau) ./ dd[:,4])
-    X::Array{Float64,1} = (dd[:,4] .* ( Delta + 2.0 * Em) + 2.0 * dd[:,6] .* Tau )
+    X::Array{Float64,1} = (dd[:,4] .* ( Delta .+ 2.0 .* Em) .+ 2.0 .* dd[:,6] .* Tau )
 
-    K::Array{Float64,1} = ( ( - ( Y ./ Tau ) .* dd[5] + dd[:,4] .* ( 
-          0.5 * Vsq + Em ) + dd[:,6] .* Tau ) ./ ( dd[:,4] ) )
-    H::Array{Float64,1} = ( Cs.^2 ./ ( dd[:,4] .* Tau ) ) + K
+    K::Array{Float64,1} = ( ( .- ( Y ./ Tau ) .* dd[5] .+ dd[:,4] .* ( 
+          0.5 .* Vsq .+ Em ) .+ dd[:,6] .* Tau ) ./ ( dd[:,4] ) )
+    H::Array{Float64,1} = ( Cs.^2 ./ ( dd[:,4] .* Tau ) ) .+ K
     # TODO: Replace H with Tau(E+P)
     # TODO: Try analytic sound speed?
 
     for i in 1:length(D)
         @inbounds R[i,:,1] = [ 1.0, Vd1[i] .- Cs[i] .* sqrt.( Gmdd11[i] ), Vd2[i], 
-            Vd3[i], H[i] - Cs[i] .* sqrt.( Gmdd11[i] ) .* Vu1[i], Y[i] ]
+            Vd3[i], H[i] .- Cs[i] .* sqrt.( Gmdd11[i] ) .* Vu1[i], Y[i] ]
         @inbounds R[i,:,2] = [ 0.0, 0.0, 1.0, 0.0, Vu2[i], 0.0 ]
         @inbounds R[i,:,3] = [ 1.0, Vd1[i], 0.0, 0.0, B[i], 0.0 ]
         @inbounds R[i,:,4] = [ 1.0, Vd1[i], 0.0, 0.0, 0.0,
             (Tau[i] .* X[i]) ./ (2.0 * dd[:,5][i]) ]
         @inbounds R[i,:,5] = [ 0.0, 0.0, 0.0, 1.0, Vu3[i], 0.0 ]
         @inbounds R[i,:,6] = [ 1.0, Vd1[i] + Cs[i] .* sqrt.( Gmdd11[i] ), Vd2[i],
-            Vd3[i], H[i] + Cs[i] .* sqrt.( Gmdd11[i] ) .* Vu1[i], Y[i] ]
+            Vd3[i], H[i] .+ Cs[i] .* sqrt.( Gmdd11[i] ) .* Vu1[i], Y[i] ]
 
     end
 
@@ -582,30 +582,30 @@ function Compute_R1( D::Float64, E::Float64, Ne::Float64,
     Vd2::Float64 = Gmdd22 .* Vu2
     Vd3::Float64 = Gmdd33 .* Vu3
 
-    Vsq::Float64 = Vu1 * Vd1 + Vu2 * Vd2 + Vu3 * Vd3
+    Vsq::Float64 = Vu1 * Vd1 .+ Vu2 * Vd2 .+ Vu3 * Vd3
 
     Tau::Float64 = 1.0 ./ D
-    Delta::Float64 = Vu1 * Vd1 - Vu2 * Vd2 - Vu3 * Vd3
-    B::Float64 = 0.5 .* ( Delta + 2.0 .* Em + 
+    Delta::Float64 = Vu1 * Vd1 .- Vu2 * Vd2 .- Vu3 * Vd3
+    B::Float64 = 0.5 .* ( Delta .+ 2.0 .* Em .+ 
         (2.0 .* dd[:,6][1] * Tau) ./ dd[:,4][1])
-    X::Float64 = (dd[:,4][1] .* ( Delta + 2.0 * Em) + 2.0 * dd[:,6][1] .* Tau )
+    X::Float64 = (dd[:,4][1] .* ( Delta .+ 2.0 * Em) .+ 2.0 .* dd[:,6][1] .* Tau )
 
-    K::Float64 = ( ( - ( Y ./ Tau ) .* dd[:,5][1] + dd[:,4][1] .* ( 
-          0.5 * Vsq + Em ) + dd[:,6][1] .* Tau ) ./ ( dd[:,4][1] ) )
-    H::Float64 = ( Cs.^2 ./ ( dd[:,4][1] .* Tau ) ) + K
+    K::Float64 = ( ( .- ( Y ./ Tau ) .* dd[:,5][1] .+ dd[:,4][1] .* ( 
+          0.5 .* Vsq .+ Em ) .+ dd[:,6][1] .* Tau ) ./ ( dd[:,4][1] ) )
+    H::Float64 = ( Cs.^2 ./ ( dd[:,4][1] .* Tau ) ) .+ K
 
     # TODO: Replace H with Tau(E+P)
     # TODO: Try analytic sound speed?
 
-    R[:,1] = [ 1.0, Vd1 - Cs .* sqrt.( Gmdd11 ), Vd2, 
-       Vd3, H - Cs .* sqrt.( Gmdd11 ) .* Vu1, Y ]
+    R[:,1] = [ 1.0, Vd1 .- Cs .* sqrt.( Gmdd11 ), Vd2, 
+       Vd3, H .- Cs .* sqrt.( Gmdd11 ) .* Vu1, Y ]
     R[:,2] = [ 0.0, 0.0, 1.0, 0.0, Vu2, 0.0 ]
     R[:,3] = [ 1.0, Vd1, 0.0, 0.0, B, 0.0 ]
     R[:,4] = [ 1.0, Vd1, 0.0, 0.0, 0.0,
        (Tau .* X) ./ (2.0 * dd[:,5][1]) ]
     R[:,5] = [ 0.0, 0.0, 0.0, 1.0, Vu3, 0.0 ]
-    R[:,6] = [ 1.0, Vd1 + Cs .* sqrt.( Gmdd11 ), Vd2,
-        Vd3, H + Cs .* sqrt.( Gmdd11 ) .* Vu1, Y ]
+    R[:,6] = [ 1.0, Vd1 .+ Cs .* sqrt.( Gmdd11 ), Vd2,
+        Vd3, H .+ Cs .* sqrt.( Gmdd11 ) .* Vu1, Y ]
 
     return R
 end
@@ -670,32 +670,34 @@ function Compute_invR1( D::Array{Float64,1}, E::Array{Float64,1}, Ne::Array{Floa
     Phi_d2::Array{Float64,1} = dd[:,4] .* Tau .* Vd2
     Phi_d3::Array{Float64,1} = dd[:,4] .* Tau .* Vd3
 
-    Vsq::Array{Float64,1} = Vu1 .* Vd1 + Vu2 .* Vd2 + Vu3 .* Vd3
+    Vsq::Array{Float64,1} = Vu1 .* Vd1 .+ Vu2 .* Vd2 .+ Vu3 .* Vd3
 
-    Delta::Array{Float64,1} = Vu1 .* Vd1 - Vu2 .* Vd2 - Vu3 .* Vd3
-    B::Array{Float64,1} = 0.5 .* ( Delta + 2.0 .* Em + 
+    Delta::Array{Float64,1} = Vu1 .* Vd1 .- Vu2 .* Vd2 .- Vu3 .* Vd3
+    B::Array{Float64,1} = 0.5 .* ( Delta .+ 2.0 .* Em .+ 
         (2.0 .* dd[:,6] .* Tau) ./ dd[:,4])
-    X::Array{Float64,1} = (dd[:,4] .* ( Delta + 2.0 * Em) + 2.0 * dd[:,6] .* Tau )
+    X::Array{Float64,1} = (dd[:,4] .* ( Delta .+ 2.0 .* Em) .+ 2.0 .* dd[:,6] .* Tau )
 
-    K::Array{Float64,1} = ( ( - ( Y ./ Tau ) .* dd[:,5] + dd[:,4] .* ( 
-          0.5 * Vsq + Em ) + dd[:,6] .* Tau ) ./ ( dd[:,4] ) )
-    H::Array{Float64,1} = ( Cs.^2 ./ ( dd[:,4] .* Tau ) ) + K
-    Alpha::Array{Float64,1} = 2.0 * Y .* dd[:,5] - X .* Tau
-    W = Tau .* ( dd[:,4] .* ( Vsq - 2.0 * Em )
-               - 2.0 .* dd[:,6] .* Tau )
+    K::Array{Float64,1} = ( ( .- ( Y ./ Tau ) .* dd[:,5] .+ dd[:,4] .* ( 
+          0.5 .* Vsq .+ Em ) .+ dd[:,6] .* Tau ) ./ ( dd[:,4] ) )
+    H::Array{Float64,1} = ( Cs.^2 ./ ( dd[:,4] .* Tau ) ) .+ K
+    Alpha::Array{Float64,1} = 2.0 .* Y .* dd[:,5] .- X .* Tau
+    W = Tau .* ( dd[:,4] .* ( Vsq .- 2.0 * Em )
+               .- 2.0 .* dd[:,6] .* Tau )
     invCsSq = 1.0 ./ ( Cs.^2 )
 
     # TODO: Replace H with Tau(E+P)
     # TODO: Try analytic sound speed?
 
+    # TODO: These are not array operations. Could this be rewritten to be vectorized?
+
     for i in 1:length(D)
         @inbounds invR[i,:,1] = invCsSq[i] .*
-            [ + 0.25 * (W[i] + 2.0 * Cs[i] .* sqrt.( Gmdd11[i] ) .* Vu1[i]), 
-            - 0.5 * Vd2[i] .* W[i],
-            + (2.0 * Cs[i].^2 * X[i] + Alpha[i] .* W[i] ./ Tau[i]) ./ (2.0 .* X[i]),
-            - (Y[i]) .* dd[:,5][i] .* W[i] / (X[i] .* Tau[i]),
-            - 0.5 * Vd3[i] .* W[i],
-            + 0.25 * (W[i] - 2.0 * Cs[i] .* sqrt.( Gmdd11[i] ) .* Vu1[i]) ]
+            [ + 0.25 .* (W[i] .+ 2.0 .* Cs[i] .* sqrt.( Gmdd11[i] ) .* Vu1[i]), 
+            - 0.5 .* Vd2[i] .* W[i],
+            + (2.0 * Cs[i].^2 .* X[i] .+ Alpha[i] .* W[i] ./ Tau[i]) ./ (2.0 .* X[i]),
+            - (Y[i]) .* dd[:,5][i] .* W[i] ./ (X[i] .* Tau[i]),
+            - 0.5 .* Vd3[i] .* W[i],
+            + 0.25 .* (W[i] .- 2.0 .* Cs[i] .* sqrt.( Gmdd11[i] ) .* Vu1[i]) ]
 
         @inbounds invR[i,:,2] = invCsSq[i] .*
             [ - 0.5 .* ( ( Cs[i] ./ sqrt.( Gmdd11[i] ) ) + Phi_u1[i] ),
@@ -711,14 +713,14 @@ function Compute_invR1( D::Array{Float64,1}, E::Array{Float64,1}, Ne::Array{Floa
             - Phi_u2[i] .* Alpha[i] ./ (X[i] .* Tau[i]),
             + 2.0 .* Y[i] .* dd[:,5][i] .* Phi_u2[i] ./ (X[i] .* Tau[i]),
             + Phi_u2[i] .* Vd3[i],
-            - 0.5 * Phi_u2[i] ]
+            - 0.5 .* Phi_u2[i] ]
 
         @inbounds invR[i,:,4] = invCsSq[i] .*
             [ - 0.5 * Phi_u3[i],
             + Phi_u3[i] .* Vd2[i],
             - Phi_u3[i] .* Alpha[i] ./ (X[i] .* Tau[i]),
             + 2.0 .* Y[i] .* dd[:,5][i] .* Phi_u3[i] ./ (X[i] .* Tau[i]),
-            + Cs[i].^2 + Phi_u3[i] .* Vd3[i],
+            + Cs[i].^2 .+ Phi_u3[i] .* Vd3[i],
             - 0.5 * Phi_u3[i] ]
 
         @inbounds invR[i,:,5] = invCsSq[i] .*
@@ -730,12 +732,12 @@ function Compute_invR1( D::Array{Float64,1}, E::Array{Float64,1}, Ne::Array{Floa
             + 0.5 * dd[:,4][i] .* Tau[i] ]
 
         @inbounds invR[i,:,6] = invCsSq[i] .*
-            [ + 0.5 * dd[:,5][i],
+            [ + 0.5 .* dd[:,5][i],
             - Vd2[i] .* dd[:,5][i],
             + (dd[:,5][i] .* (-2.0 * Cs[i].^2 + Alpha[i])) ./ (Tau[i] .* X[i]),
-            + 2.0 * dd[:,5][i] .* (Cs[i].^2 .- Y[i] .* dd[:,5][i]) ./ (Tau[i] .* X[i]),
+            + 2.0 .* dd[:,5][i] .* (Cs[i].^2 .- Y[i] .* dd[:,5][i]) ./ (Tau[i] .* X[i]),
             - Vd3[i] .* dd[:,5][i],
-            + 0.5 * dd[:,5][i] ]
+            + 0.5 .* dd[:,5][i] ]
 
     end
 
@@ -784,45 +786,45 @@ function Compute_invR1( D::Float64, E::Float64, Ne::Float64,
 
     Vsq::Float64 = Vu1 .* Vd1 + Vu2 .* Vd2 + Vu3 .* Vd3
 
-    Delta::Float64 = Vu1 .* Vd1 - Vu2 .* Vd2 - Vu3 .* Vd3
+    Delta::Float64 = Vu1 .* Vd1 .- Vu2 .* Vd2 .- Vu3 .* Vd3
     B::Float64 = 0.5 .* ( Delta + 2.0 .* Em + 
         (2.0 .* dd[:,6][1] .* Tau) ./ dd[:,4][1])
-    X::Float64 = (dd[:,4][1] .* ( Delta + 2.0 * Em) + 2.0 * dd[:,6][1] .* Tau )
+    X::Float64 = (dd[:,4][1] .* ( Delta .+ 2.0 .* Em) .+ 2.0 .* dd[:,6][1] .* Tau )
 
-    K::Float64 = ( ( - ( Y ./ Tau ) .* dd[:,5][1] + dd[:,4][1] .* ( 
-          0.5 * Vsq + Em ) + dd[:,6][1] .* Tau ) ./ ( dd[:,4][1] ) )
-    H::Float64 = ( Cs.^2 ./ ( dd[:,4][1] .* Tau ) ) + K
-    Alpha::Float64 = 2.0 * Y .* dd[:,5][1] - X .* Tau
-    W = Tau .* ( dd[:,4][1] .* ( Vsq - 2.0 * Em )
-               - 2.0 .* dd[:,6][1] .* Tau )
+    K::Float64 = ( ( - ( Y ./ Tau ) .* dd[:,5][1] .+ dd[:,4][1] .* ( 
+          0.5 .* Vsq .+ Em ) .+ dd[:,6][1] .* Tau ) ./ ( dd[:,4][1] ) )
+    H::Float64 = ( Cs.^2 ./ ( dd[:,4][1] .* Tau ) ) .+ K
+    Alpha::Float64 = 2.0 .* Y .* dd[:,5][1] .- X .* Tau
+    W = Tau .* ( dd[:,4][1] .* ( Vsq .- 2.0 .* Em )
+               .- 2.0 .* dd[:,6][1] .* Tau )
     invCsSq = 1.0 ./ ( Cs.^2 )
 
     # TODO: Replace H with Tau(E+P)
     # TODO: Try analytic sound speed?
 
     invR[:,1] = invCsSq .*
-        [ + 0.25 * (W + 2.0 * Cs .* sqrt.( Gmdd11 ) .* Vu1), 
-          - 0.5 * Vd2 .* W,
-          + (2.0 * Cs.^2 * X + Alpha .* W ./ Tau) ./ (2.0 .* X),
+        [ + 0.25 .* (W .+ 2.0 .* Cs .* sqrt.( Gmdd11 ) .* Vu1), 
+          - 0.5 .* Vd2 .* W,
+          + (2.0 .* Cs.^2 .* X .+ Alpha .* W ./ Tau) ./ (2.0 .* X),
           - (Y) .* dd[:,5][1] .* W / (X .* Tau),
           - 0.5 * Vd3 .* W,
-          + 0.25 * (W - 2.0 * Cs .* sqrt.( Gmdd11 ) .* Vu1) ]
+          + 0.25 .* (W .- 2.0 .* Cs .* sqrt.( Gmdd11 ) .* Vu1) ]
 
     invR[:,2] = invCsSq .*
-        [ - 0.5 .* ( ( Cs ./ sqrt.( Gmdd11 ) ) + Phi_u1 ),
+        [ - 0.5 .* ( ( Cs ./ sqrt.( Gmdd11 ) ) .+ Phi_u1 ),
           + Phi_u1 .* Vd2,
           - Phi_u1 .* Alpha ./ (X .* Tau),
-          + 2.0 * Y .* dd[:,5][1] .* Phi_u1 ./ (X .* Tau),
+          + 2.0 .* Y .* dd[:,5][1] .* Phi_u1 ./ (X .* Tau),
           + Phi_u1 .* Vd3,
-          + 0.5 .* ( ( Cs ./ sqrt.( Gmdd11 ) ) - Phi_u1 ) ]
+          + 0.5 .* ( ( Cs ./ sqrt.( Gmdd11 ) ) .- Phi_u1 ) ]
 
     invR[:,3] = invCsSq .* 
-        [ - 0.5 * Phi_u2,
-          + Cs.^2 + Phi_u2 .* Vd2,
+        [ - 0.5 .* Phi_u2,
+          + Cs.^2 .+ Phi_u2 .* Vd2,
           - Phi_u2 .* Alpha ./ (X .* Tau),
           + 2.0 .* Y .* dd[:,5][1] .* Phi_u2 ./ (X .* Tau),
           + Phi_u2 .* Vd3,
-          - 0.5 * Phi_u2 ]
+          - 0.5 .* Phi_u2 ]
 
     invR[:,4] = invCsSq .*
         [ - 0.5 * Phi_u3,
@@ -833,20 +835,20 @@ function Compute_invR1( D::Float64, E::Float64, Ne::Float64,
           - 0.5 * Phi_u3 ]
 
     invR[:,5] = invCsSq .*
-        [ + 0.5 * dd[:,4][1] .* Tau,
+        [ + 0.5 .* dd[:,4][1] .* Tau,
           - Phi_d2,
           + dd[:,4][1] .* Alpha  ./ X,
-          - ((2.0 * Y .* dd[:,5][1] .* dd[:,4][1]) ./ X),
+          - ((2.0 .* Y .* dd[:,5][1] .* dd[:,4][1]) ./ X),
           - Phi_d3,
-          + 0.5 * dd[:,4][1] .* Tau ]
+          + 0.5 .* dd[:,4][1] .* Tau ]
 
     invR[:,6] = invCsSq .*
-        [ + 0.5 * dd[:,5][1],
+        [ + 0.5 .* dd[:,5][1],
           - Vd2 .* dd[:,5][1],
-          + (dd[:,5][1] .* (-2.0 * Cs.^2 + Alpha)) ./ (Tau .* X),
-          + 2.0 * dd[:,5][1] .* (Cs.^2 .- Y .* dd[:,5][1]) ./ (Tau .* X),
+          + (dd[:,5][1] .* (-2.0 .* Cs.^2 .+ Alpha)) ./ (Tau .* X),
+          + 2.0 .* dd[:,5][1] .* (Cs.^2 .- Y .* dd[:,5][1]) ./ (Tau .* X),
           - Vd3 .* dd[:,5][1],
-          + 0.5 * dd[:,5][1] ]
+          + 0.5 .* dd[:,5][1] ]
 
     return invR
 end
@@ -882,6 +884,7 @@ function Compute_Characteristics( U::Array{Float64,2}, Ne::Array{Float64,1},
 
     nx = length( U[:,1] )
 
+    # Note that we do the calculations *without* units
     invR::Array{Float64,3} = Compute_invR1( U[:,1], U[:,5], Ne, Vu1, Vu2, Vu3, Y, Em, Cs, 
         Gmdd11, Gmdd22, Gmdd33, Units_Option=false )
 
@@ -910,6 +913,7 @@ function Compute_Characteristics( U::Array{Float64,2},
 
     nx = length( U[:,1] )
 
+    # Note that we do the calculations *without* units
     invR::Array{Float64,3} = Compute_invR1( U[:,1], U[:,5], Ne, Vu1, Vu2, Vu3, Y, Em, Cs, 
         Gmdd11, Gmdd22, Gmdd33, Units_Option=false )
 
