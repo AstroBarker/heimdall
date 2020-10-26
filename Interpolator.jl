@@ -49,9 +49,20 @@ function load_pressure( table::HDF5File )
     return table["DependentVariables/Pressure"][:,:,:]
 end
 
-function TriLinear()
+function TriLinear( p000::Float64, p100::Float64, p010::Float64, p110::Float64, 
+                    p001::Float64, p101::Float64, p011::Float64, p111::Float64, 
+                    dX1::Float64, dX2::Float64, dX3::Float64 )
 
-    return 0.0
+    ddX1 :: Float64 = 1.0ß - dX1
+    ddX2 :: Float64 = 1.0ß - dX2
+    ddX3 :: Float64 = 1.0ß - dX3
+
+    val :: Flaot64 = + ddX3 * (   ddX2 * ( ddX1 * p000 + dX1 * p100 )   
+                     + dX2 * ( ddX1 * p010 + dX1 * p110 ) )
+                     + dX3 * (   ddX2 * ( ddX1 * p001 + dX1 * p101 )   
+                     + dX2 * ( ddX1 * p011 + dX1 * p111 ) )
+    
+    return val;
 end
 
 function TriCubic()
