@@ -53,13 +53,13 @@ function TriLinear( p000::Float64, p100::Float64, p010::Float64, p110::Float64,
                     p001::Float64, p101::Float64, p011::Float64, p111::Float64, 
                     dX1::Float64, dX2::Float64, dX3::Float64 )
 
-    ddX1 :: Float64 = 1.0ß - dX1
-    ddX2 :: Float64 = 1.0ß - dX2
-    ddX3 :: Float64 = 1.0ß - dX3
+    ddX1 :: Float64 = 1.0 - dX1
+    ddX2 :: Float64 = 1.0 - dX2
+    ddX3 :: Float64 = 1.0 - dX3
 
-    val :: Flaot64 = + ddX3 * (   ddX2 * ( ddX1 * p000 + dX1 * p100 )   
+    val :: Float64 =  ddX3 * ( ddX2 * ( ddX1 * p000 + dX1 * p100 )   
                      + dX2 * ( ddX1 * p010 + dX1 * p110 ) )
-                     + dX3 * (   ddX2 * ( ddX1 * p001 + dX1 * p101 )   
+                     + dX3 * ( ddX2 * ( ddX1 * p001 + dX1 * p101 )   
                      + dX2 * ( ddX1 * p011 + dX1 * p111 ) )
     
     return val;
@@ -67,4 +67,68 @@ end
 
 function TriCubic()
     return 0.0
+end
+
+function Index1D( val::Float64, array::Array{Float64,1} )
+   
+    index :: Int64 = - 1 # error val
+    size :: Int64 = length( array )
+
+    il :: Int64 = 0
+    iu :: Int64 = size + 1
+    im :: Int64 = 0
+    while ( iu - il > 1 )
+      im = floor(Int, (iu+il) / 2 ) # round down
+      if ((array[size] > array[1]) & (val > array[im] ))
+        il = im
+      else
+        iu = im
+      end
+    end
+
+    if ( val == array[1] )
+      index = 1
+    elseif ( val == array[size] )
+      index = size - 1
+    else
+      index = il
+    end
+
+    # only works for monatonically increasing array
+    # index = maximum( findall( array .<= val ) )
+
+    return index
+
+end
+
+function LogInterpolate_Linear( D::Float64, T::Float64, Y::Float64, 
+                                Ds::Array{Float64,1}, Ts::Array{Float64,1}, 
+                                Ys::Array{Float64,1}, OS::Float64, 
+                                Table::Array{Float64,3} )
+
+    SizeDs :: Int64 = length( Ds )
+    SizeTs :: Int64 = length( Ts )
+    SizeYs :: Int64 = length( Ys )
+
+    iD :: Int64 = Index1D( D, Ds )
+    iT :: Int64 = Index1D( T, Ts )
+    iY :: Int64 = Index1D( Y, Ys )
+
+    dD :: Float64 = log10( D / Ds[iD] ) / log10( Ds[iD+1] / Ds[iD] )
+    dT :: Float64 = log10( T / Ts[iT] ) / log10( Ts[iT+1] / Ts[iT] )
+    dY :: Float64 = ( Y - Ys[iY] ) / ( Ys[iY+1] - Ys[iY] )
+
+    p000 :: Float64 = Table[ iD  , iT  , iY   ]
+    p100 :: Float64 = Table[ iD+1, iT  , iY   ]
+    p010 :: Float64 = Table[ iD  , iT+1, iY   ]
+    p110 :: Float64 = Table[ iD+1, iT+1, iY   ]
+    p001 :: Float64 = Table[ iD  , iT  , iY+1 ]
+    p101 :: Float64 = Table[ iD+1, iT  , iY+1 ]
+    p011 :: Float64 = Table[ iD  , iT+1, iY+1 ]
+    p111 :: Float64 = Table[ iD+1, iT+1, iY+1 ]
+
+    Interpolant :: Float64 = 10.0^( TriLinear( p000, p100, p010, p110, 
+              p001, p101, p011, p111, dD, dT, dY ) ) - OS
+
+    return Interpolant
 end
