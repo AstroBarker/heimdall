@@ -6,7 +6,7 @@ Utility functions
 Convert an (i,j,k) index to 1D index n.
 """
 function ijk2n( i::Int64, j::Int64, k::Int64 ) 
-  return (i+4*j+16*k)
+  return (1+i+4*j+16*k)
 end
 
 function point2xyz( p::Int64 )
