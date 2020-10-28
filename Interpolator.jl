@@ -4,6 +4,9 @@ Set of table interpolation routines for Heimdall.
 
 using HDF5;
 
+include("Matrix.jl")
+include("Utils.jl")
+
 # """
 # Read the h5 EoS table. Currently only implemented for pressure, but extension is simple.
 # """
@@ -69,62 +72,71 @@ function TriLinear( p000::Float64, p100::Float64, p010::Float64, p110::Float64,
     # yd = (y - y0)/(y1 - y0);
     # zd = (z - z0)/(z1 - z0);
 
-    xd = dX1
-    yd = dX2
-    zd = dX3
+    xd :: Float64 = dX1
+    yd :: Float64 = dX2
+    zd :: Float64 = dX3
 
     # Interpolate along x
-    c00 = p000 * (1 - xd) + p100 * xd;
-    c01 = p001 * (1 - xd) + p101 * xd;
-    c10 = p010 * (1 - xd) + p110 * xd;
-    c11 = p011 * (1 - xd) + p111 * xd;
+    c00 :: Float64 = p000 * (1 - xd) + p100 * xd;
+    c01 :: Float64 = p001 * (1 - xd) + p101 * xd;
+    c10 :: Float64 = p010 * (1 - xd) + p110 * xd;
+    c11 :: Float64 = p011 * (1 - xd) + p111 * xd;
 
     #interpolate y
-    c0 = c00 * (1 - yd) + c10 * yd;
-    c1 = c01 * (1 - yd) + c11 * yd;
+    c0  :: Float64 = c00 * (1 - yd) + c10 * yd;
+    c1  :: Float64 = c01 * (1 - yd) + c11 * yd;
 
     # interpolate z
-    val = c0 * (1 - zd) + c1 * zd;
+    val :: Float64 = c0 * (1 - zd) + c1 * zd;
     
     return val;
 end
 
 
-function TriCubic()
-    return 0.0
+function tricubic_get_coeff_stacked( x::Array{Float64,1} )
+
+    a :: Array{Float64, 1} = zeros( 64 )
+    for i in 1:64
+        for j in 1:64
+            a[i]+=A[i,j] * x[j];
+        end
+    end
+
+  return a
+end
+
+function tricubic_get_coeff( f::Array{Float64,1}, dfdx::Array{Float64,1}, dfdy::Array{Float64,1}, 
+                             dfdz::Array{Float64,1}, d2fdxdy::Array{Float64,1}, d2fdxdz::Array{Float64,1}, 
+                             d2fdydz::Array{Float64,1}, d3fdxdydz::Array{Float64,1} )
+
+  x :: Array{Float64, 1} = zeros( 64 )
+    for i in 1 : 8
+        x[0+i]=f[i];
+        x[8+i]=dfdx[i];
+        x[16+i]=dfdy[i];
+        x[24+i]=dfdz[i];
+        x[32+i]=d2fdxdy[i];
+        x[40+i]=d2fdxdz[i];
+        x[48+i]=d2fdydz[i];
+        x[56+i]=d3fdxdydz[i];
+    end
+  tricubic_get_coeff_stacked( x );
 end
 
 
-function Index1D( val::Float64, array::Array{Float64,1} )
-   
-    index :: Int64 = - 1 # error val
-    size  :: Int64 = length( array )
+function TriCubic( a::Array{Float64, 2}, D::Float64, T::Float64, Y::Float64 )
 
-    il :: Int64 = 0
-    im :: Int64 = 0
-    iu :: Int64 = size + 1
-    while ( iu - il > 1 )
-      im = floor(Int, (iu+il) / 2 ) # round down
-      if ((array[size] > array[1]) & (val > array[im] ))
-        il = im
-      else
-        iu = im
-      end
+    Interpolant :: Float64 = 0.0
+
+    for i in 1 : 3
+        for j in 1 : 3
+            for k in 1 : 3
+                Interpolant += a[ijk2n(i,j,k)] * x^i * y^j * z^k
+            end
+        end
     end
 
-    if ( val == array[1] )
-      index = 1
-    elseif ( val == array[size] )
-      index = size - 1
-    else
-      index = il
-    end
-
-    # only works for monatonically increasing array
-    # index = maximum( findall( array .<= val ) )
-
-    return index
-
+    return Interpolant
 end
 
 
