@@ -105,9 +105,12 @@ function tricubic_get_coeff_stacked( x::Array{Float64,1} )
   return a
 end
 
-function tricubic_get_coeff( f::Array{Float64,1}, dfdx::Array{Float64,1}, dfdy::Array{Float64,1}, 
-                             dfdz::Array{Float64,1}, d2fdxdy::Array{Float64,1}, d2fdxdz::Array{Float64,1}, 
-                             d2fdydz::Array{Float64,1}, d3fdxdydz::Array{Float64,1} )
+function tricubic_get_coeff( f::Array{Float64,1}, dfdx::Array{Float64,1}, 
+                             dfdy::Array{Float64,1}, dfdz::Array{Float64,1}, 
+                             d2fdxdy::Array{Float64,1}, 
+                             d2fdxdz::Array{Float64,1}, 
+                             d2fdydz::Array{Float64,1}, 
+                             d3fdxdydz::Array{Float64,1} )
 
     x :: Array{Float64, 1} = zeros( 64 )
     x = vcat( f, dfdx, dfdy, dfdz, d2fdxdy, d2fdxdz, d2fdydz, d3fdxdydz )
@@ -161,4 +164,96 @@ function LogInterpolate_Linear( D::Float64, T::Float64, Y::Float64,
               p001, p101, p011, p111, dD, dT, dY ) ) - OS
 
     return Interpolant
+end
+
+function LogInterpolate_Cubic( D::Float64, T::Float64, Y::Float64, 
+                               Ds::Array{Float64,1}, Ts::Array{Float64,1}, 
+                               Ys::Array{Float64,1}, OS::Float64, 
+                               Table::Array{Float64,3} )
+
+    SizeDs :: Int64 = length( Ds )
+    SizeTs :: Int64 = length( Ts )
+    SizeYs :: Int64 = length( Ys )
+
+    iD :: Int64 = Index1D( D, Ds )
+    iT :: Int64 = Index1D( T, Ts )
+    iY :: Int64 = Index1D( Y, Ys )
+
+    p000 :: Float64 = Table[ iD  , iT  , iY   ]
+    p100 :: Float64 = Table[ iD+1, iT  , iY   ]
+    p010 :: Float64 = Table[ iD  , iT+1, iY   ]
+    p110 :: Float64 = Table[ iD+1, iT+1, iY   ]
+    p001 :: Float64 = Table[ iD  , iT  , iY+1 ]
+    p101 :: Float64 = Table[ iD+1, iT  , iY+1 ]
+    p011 :: Float64 = Table[ iD  , iT+1, iY+1 ]
+    p111 :: Float64 = Table[ iD+1, iT+1, iY+1 ]
+
+    # Grid spacing
+    dD :: Float64 = log10( Ds[i+1]/Ds[i] )
+    dT :: Float64 = log10( Ts[i+1]/Ts[i] )
+    dY :: Float64 = Ys[i+1] - Ys[i] 
+
+    p       :: Array{Float64, 1} = vcat( p000, p100, p010, p110, 
+                                         p001, p101, p011, p111 )
+    
+    ddD     :: Array{Float64, 1} = zero( p )
+    ddT     :: Array{Float64, 1} = zero( p )
+    ddY     :: Array{Float64, 1} = zero( p )
+    ddDdT   :: Array{Float64, 1} = zero( p )
+    ddDdY   :: Array{Float64, 1} = zero( p )
+    ddTdY   :: Array{Float64, 1} = zero( p )
+    ddDdTdY :: Array{Float64, 1} = zero( p )
+
+    ddD[1] = 0.5 * ( p100 - Table[ iD-1, iT  , iY   ] ) / dD
+    ddD[2] = 0.5 * ( Table[ iD+2, iT  , iY   ] - p000 ) / dD
+    ddD[3] = 0.5 * ( p110 - Table[ iD-1, iT+1, iY   ] ) / dD
+    ddD[4] = 0.5 * ( Table[ iD+2, iT+1, iY   ] - p010 ) / dD
+    ddD[5] = 0.5 * ( p101 - Table[ iD-1, iT  , iY+1 ] ) / dD
+    ddD[6] = 0.5 * ( Table[ iD+2, iT  , iY+1 ] - p001 ) / dD
+    ddD[7] = 0.5 * ( p111 - Table[ iD-1, iT+1, iY+1 ] ) / dD
+    ddD[8] = 0.5 * ( Table[ iD+2, iT+1, iY+1 ] - p011 ) / dD 
+
+    ddT[1] = 0.5 * ( p010 - Table[ iD  , iT-1, iY   ] ) / dT
+    ddT[2] = 0.5 * ( p110 - Table[ iD+1, iT-1, iY   ] ) / dT
+    ddT[3] = 0.5 * ( Table[ iD  , iT+2, iY   ] - p000 ) / dT
+    ddT[4] = 0.5 * ( Table[ iD+1, iT+2, iY   ] - p100 ) / dT
+    ddT[5] = 0.5 * ( p011 - Table[ iD  , iT-1, iY+1 ] ) / dT
+    ddT[6] = 0.5 * ( p111 - Table[ iD+1, iT-1, iY+1 ] ) / dT
+    ddT[7] = 0.5 * ( Table[ iD  , iT+2, iY+1 ] - p001 ) / dT
+    ddT[8] = 0.5 * ( Table[ iD+1, iT+2, iY+1 ] - p101 ) / dT
+
+    ddY[1] = 0.5 * ( p001 - Table[ iD  , iT  , iY-1 ] ) / dY
+    ddY[2] = 0.5 * ( p101 - Table[ iD+1, iT  , iY-1 ] ) / dY
+    ddY[3] = 0.5 * ( p011 - Table[ iD  , iT+1, iY-1 ] ) / dY
+    ddY[4] = 0.5 * ( p111 - Table[ iD+1, iT+1, iY-1 ] ) / dY
+    ddY[5] = 0.5 * ( p011 - Table[ iD  , iT-1, iY+1 ] ) / dY
+    ddY[6] = 0.5 * ( p111 - Table[ iD+1, iT-1, iY+1 ] ) / dY
+    ddY[7] = 0.5 * ( Table[ iD  , iT+2, iY+1 ] - p001 ) / dY
+    ddY[8] = 0.5 * ( Table[ iD+1, iT+2, iY+1 ] - p101 ) / dY
+
+
+    ddDdT[1] = 0.25 * ( p110 - Table[ iD+1, iT-1, iY  ] 
+        - Table[ iD-1, iT+1, iY   ] + Table[ iD-1, iT-1, iY   ] ) / (dD * dT)
+
+    ddDdT[2] = 0.25 * ( Table[ iD+2, iT+1, iY   ] - Table[ iD+2, iT-1, iY   ] 
+        - p010 + Table[ iD  , iT-1, iY   ] ) / (dD * dT)
+
+    ddDdT[3] = 0.25 * ( Table[ iD+1, iT+2, iY   ] - p100 
+        - Table[ iD-1, iT+2, iY   ] + Table[ iD-1, iT  , iY   ] ) / (dD * dT)
+
+    ddDdT[4] = 0.25 * ( Table[ iD+2, iT+2, iY   ] - Table[ iD+2, iT  , iY   ]
+        - Table[ iD  , iT+2, iY   ] + p000 ) / (dD * dT)
+
+    ddDdT[5] = 0.25 * ( p111 - Table[ iD+1, iT-1, iY+1 ]
+        - Table[ iD-1, iT+1, iY+1 ] + Table[ iD-1, iT-1, iY+1 ] ) / (dD * dT)
+
+    ddDdT[6] = 0.25 * ( Table[ iD+2, iT+1, iY+1 ] - Table[ iD+2, iT-1, iY+1 ]
+        - p011 + Table[ iD , iT-1, iY+1 ] ) / (dD * dT)
+
+    ddDdT[7] = 0.25 * ( Table[ iD+1, iT+2, iY+1 ] - p101
+        - Table[ iD-1, iT+2, iY+1 ] + Table[ i-1, iT-2, iY+1 ] ) / (dD * dT)
+        
+    ddDdT[8] = 0.25 * ( Table[ iD+2, iT+2, iY+1 ] - Table[ iD+2, iT  , iY+1 ]
+        - Table[ iD  , iT+2, iY+1 ] + p001 ) / (dD * dT)
+
 end
